@@ -24,7 +24,7 @@ describe("umbra-announcer", () => {
     }
     const parser = new EventParser(
       program.programId,
-      new BorshCoder(program.idl)
+      new BorshCoder(program.idl),
     );
     return [...parser.parseLogs(tx.meta.logMessages)];
   }
@@ -32,7 +32,7 @@ describe("umbra-announcer", () => {
   it("emits exactly one UmbraAnnouncement for a single announce", async () => {
     const ephemeralPub = Buffer.from(
       "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
-      "hex"
+      "hex",
     );
     const metadata = Buffer.from([0xab, 0xcd]);
 
@@ -62,9 +62,7 @@ describe("umbra-announcer", () => {
 
     let threw = false;
     try {
-      await program.methods
-        .announce(1, ephemeralPub, 0x00, metadata)
-        .rpc();
+      await program.methods.announce(1, ephemeralPub, 0x00, metadata).rpc();
     } catch (err: any) {
       threw = true;
       const errMessage = err?.error?.errorMessage ?? err?.message ?? "";
@@ -123,9 +121,7 @@ describe("umbra-announcer", () => {
       },
     ];
 
-    const txSig = await program.methods
-      .announceBatch(entries)
-      .rpc();
+    const txSig = await program.methods.announceBatch(entries).rpc();
 
     const events = await eventsFromTx(txSig);
     expect(events).to.have.length(3);
@@ -140,7 +136,7 @@ describe("umbra-announcer", () => {
       expect(events[i].name).to.equal("umbraAnnouncement");
       expect(data.schemeId).to.equal(entries[i].schemeId);
       expect(Buffer.from(data.ephemeralPub)).to.deep.equal(
-        Buffer.from(entries[i].ephemeralPub)
+        Buffer.from(entries[i].ephemeralPub),
       );
       expect(data.viewTag).to.equal(entries[i].viewTag);
       expect(Buffer.from(data.metadata)).to.deep.equal(entries[i].metadata);
@@ -284,7 +280,7 @@ describe("umbra-announcer", () => {
       };
       expect(data.viewTag).to.equal(i);
       expect(Buffer.from(data.metadata)).to.deep.equal(
-        Buffer.from([i, i + 1, i + 2])
+        Buffer.from([i, i + 1, i + 2]),
       );
     }
   });
