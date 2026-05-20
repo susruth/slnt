@@ -263,4 +263,29 @@ describe("umbra-announcer", () => {
     const data = events[0].data as { schemeId: number };
     expect(data.schemeId).to.equal(0xffff);
   });
+
+  it("handles a batch of 20 entries", async () => {
+    const entries = Array.from({ length: 20 }, (_, i) => ({
+      schemeId: 1,
+      ephemeralPub: new Array(32).fill(i + 1),
+      viewTag: i,
+      metadata: Buffer.from([i, i + 1, i + 2]),
+    }));
+
+    const txSig = await program.methods.announceBatch(entries).rpc();
+
+    const events = await eventsFromTx(txSig);
+    expect(events).to.have.length(20);
+
+    for (let i = 0; i < 20; i++) {
+      const data = events[i].data as {
+        viewTag: number;
+        metadata: Buffer;
+      };
+      expect(data.viewTag).to.equal(i);
+      expect(Buffer.from(data.metadata)).to.deep.equal(
+        Buffer.from([i, i + 1, i + 2])
+      );
+    }
+  });
 });
