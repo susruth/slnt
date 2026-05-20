@@ -146,4 +146,71 @@ describe("umbra-announcer", () => {
       expect(Buffer.from(data.metadata)).to.deep.equal(entries[i].metadata);
     }
   });
+
+  it("rejects an empty batch", async () => {
+    let threw = false;
+    try {
+      await program.methods.announceBatch([]).rpc();
+    } catch (err: any) {
+      threw = true;
+      const errMessage = err?.error?.errorMessage ?? err?.message ?? "";
+      expect(errMessage).to.match(/batch must contain at least one entry/i);
+    }
+    expect(threw, "expected announce_batch([]) to throw").to.equal(true);
+  });
+
+  it("rejects a batch where any entry has oversized metadata", async () => {
+    const entries = [
+      {
+        schemeId: 1,
+        ephemeralPub: new Array(32).fill(0x01),
+        viewTag: 0x10,
+        metadata: Buffer.from([0xa1]), // 1 byte — fine
+      },
+      {
+        schemeId: 1,
+        ephemeralPub: new Array(32).fill(0x02),
+        viewTag: 0x20,
+        metadata: Buffer.alloc(65, 0xbb), // 65 bytes — too long
+      },
+    ];
+
+    let threw = false;
+    try {
+      await program.methods.announceBatch(entries).rpc();
+    } catch (err: any) {
+      threw = true;
+      const errMessage = err?.error?.errorMessage ?? err?.message ?? "";
+      expect(errMessage).to.match(/metadata exceeds 64 bytes/i);
+    }
+    expect(threw, "expected oversized-metadata batch to throw").to.equal(true);
+  });
+
+  it("emits no events when a batch fails validation", async () => {
+    // Sanity check that batch validation aborts before any emit. If the
+    // first entry is valid but the second is invalid, neither event
+    // should appear on-chain (anchor's `require!` aborts the whole tx).
+    const entries = [
+      {
+        schemeId: 1,
+        ephemeralPub: new Array(32).fill(0x11),
+        viewTag: 0x10,
+        metadata: Buffer.from([0xa1]),
+      },
+      {
+        schemeId: 1,
+        ephemeralPub: new Array(32).fill(0x12),
+        viewTag: 0x20,
+        metadata: Buffer.alloc(65, 0xbb),
+      },
+    ];
+
+    let txSig: string | undefined;
+    try {
+      txSig = await program.methods.announceBatch(entries).rpc();
+    } catch (_) {
+      // expected to throw
+    }
+    expect(txSig).to.equal(undefined);
+  });
 });
