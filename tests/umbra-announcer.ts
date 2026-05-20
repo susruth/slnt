@@ -100,4 +100,50 @@ describe("umbra-announcer", () => {
     const data = events[0].data as { metadata: Buffer };
     expect(Buffer.from(data.metadata)).to.deep.equal(metadata);
   });
+
+  it("emits one event per entry for announce_batch", async () => {
+    const entries = [
+      {
+        schemeId: 1,
+        ephemeralPub: new Array(32).fill(0x01),
+        viewTag: 0x10,
+        metadata: Buffer.from([0xa1]),
+      },
+      {
+        schemeId: 1,
+        ephemeralPub: new Array(32).fill(0x02),
+        viewTag: 0x20,
+        metadata: Buffer.from([0xa2, 0xa2]),
+      },
+      {
+        schemeId: 1,
+        ephemeralPub: new Array(32).fill(0x03),
+        viewTag: 0x30,
+        metadata: Buffer.alloc(0),
+      },
+    ];
+
+    const txSig = await program.methods
+      .announceBatch(entries)
+      .rpc();
+
+    const events = await eventsFromTx(txSig);
+    expect(events).to.have.length(3);
+
+    for (let i = 0; i < entries.length; i++) {
+      const data = events[i].data as {
+        schemeId: number;
+        ephemeralPub: number[];
+        viewTag: number;
+        metadata: Buffer;
+      };
+      expect(events[i].name).to.equal("umbraAnnouncement");
+      expect(data.schemeId).to.equal(entries[i].schemeId);
+      expect(Buffer.from(data.ephemeralPub)).to.deep.equal(
+        Buffer.from(entries[i].ephemeralPub)
+      );
+      expect(data.viewTag).to.equal(entries[i].viewTag);
+      expect(Buffer.from(data.metadata)).to.deep.equal(entries[i].metadata);
+    }
+  });
 });

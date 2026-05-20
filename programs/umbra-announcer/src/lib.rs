@@ -35,6 +35,32 @@ pub mod umbra_announcer {
 
         Ok(())
     }
+
+    /// Publish multiple announcements in a single transaction. Used by
+    /// announcement services to amortize the base tx fee across many
+    /// announcements.
+    pub fn announce_batch(
+        _ctx: Context<AnnounceBatch>,
+        entries: Vec<AnnouncementEntry>,
+    ) -> Result<()> {
+        require!(!entries.is_empty(), UmbraError::EmptyBatch);
+
+        for entry in entries.into_iter() {
+            require!(
+                entry.metadata.len() <= MAX_METADATA_LEN,
+                UmbraError::MetadataTooLong
+            );
+
+            emit!(UmbraAnnouncement {
+                scheme_id: entry.scheme_id,
+                ephemeral_pub: entry.ephemeral_pub,
+                view_tag: entry.view_tag,
+                metadata: entry.metadata,
+            });
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -43,6 +69,20 @@ pub struct Announce<'info> {
     /// can be anyone.
     #[account(mut)]
     pub fee_payer: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct AnnounceBatch<'info> {
+    #[account(mut)]
+    pub fee_payer: Signer<'info>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct AnnouncementEntry {
+    pub scheme_id: u16,
+    pub ephemeral_pub: [u8; 32],
+    pub view_tag: u8,
+    pub metadata: Vec<u8>,
 }
 
 #[event]
@@ -57,4 +97,6 @@ pub struct UmbraAnnouncement {
 pub enum UmbraError {
     #[msg("metadata exceeds 64 bytes")]
     MetadataTooLong,
+    #[msg("batch must contain at least one entry")]
+    EmptyBatch,
 }
