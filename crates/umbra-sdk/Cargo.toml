@@ -1,0 +1,30 @@
+[package]
+name = "umbra-sdk"
+version = "0.1.0"
+edition = "2021"
+description = "Rust SDK for the Umbra stealth-payment protocol on Solana (v1)"
+license = "Apache-2.0"
+
+[lib]
+name = "umbra_sdk"
+path = "src/lib.rs"
+
+[dependencies]
+curve25519-dalek = { version = "4.1", features = ["digest"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+sha2 = "0.10"
+hkdf = "0.12"
+bech32 = "0.11"
+borsh = { version = "1", features = ["derive"] }
+solana-sdk = "2.3"
+rand_core = "0.6"
+thiserror = "1"
+
+[dev-dependencies]
+rand_chacha = "0.3"
+hex = "0.4"
+
+[[example]]
+name = "lifecycle"
+path = "examples/lifecycle.rs"
