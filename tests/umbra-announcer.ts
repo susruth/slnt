@@ -213,4 +213,54 @@ describe("umbra-announcer", () => {
     }
     expect(txSig).to.equal(undefined);
   });
+
+  it("allows the same announcement to be published twice", async () => {
+    // Per spec, the announcer holds no state. A replayed announcement
+    // is legal; recipients deduplicate by R themselves.
+    const ephemeralPub = new Array(32).fill(0x77);
+    const metadata = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+
+    const tx1 = await program.methods
+      .announce(1, ephemeralPub, 0x77, metadata)
+      .rpc();
+    const tx2 = await program.methods
+      .announce(1, ephemeralPub, 0x77, metadata)
+      .rpc();
+
+    const events1 = await eventsFromTx(tx1);
+    const events2 = await eventsFromTx(tx2);
+    expect(events1).to.have.length(1);
+    expect(events2).to.have.length(1);
+
+    // Both transactions succeed independently.
+    expect(tx1).to.not.equal(tx2);
+  });
+
+  it("accepts scheme_id = 0 (program does not validate scheme IDs)", async () => {
+    // Per spec §6.1: scheme_id is recorded but not validated.
+    // v1 clients ignore non-0x0001 schemes; the program records anything.
+    const ephemeralPub = new Array(32).fill(0x00);
+
+    const txSig = await program.methods
+      .announce(0, ephemeralPub, 0x00, Buffer.alloc(0))
+      .rpc();
+
+    const events = await eventsFromTx(txSig);
+    expect(events).to.have.length(1);
+    const data = events[0].data as { schemeId: number };
+    expect(data.schemeId).to.equal(0);
+  });
+
+  it("accepts scheme_id = 0xFFFF (max value, experimental range)", async () => {
+    const ephemeralPub = new Array(32).fill(0x00);
+
+    const txSig = await program.methods
+      .announce(0xffff, ephemeralPub, 0x00, Buffer.alloc(0))
+      .rpc();
+
+    const events = await eventsFromTx(txSig);
+    expect(events).to.have.length(1);
+    const data = events[0].data as { schemeId: number };
+    expect(data.schemeId).to.equal(0xffff);
+  });
 });
