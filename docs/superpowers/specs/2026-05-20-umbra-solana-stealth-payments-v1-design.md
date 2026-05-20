@@ -23,8 +23,8 @@ Anyone can send them funds such that:
 
 **Design lineage:**
 
-- **From ERC-5564:** asset-agnostic announcer event, 1-byte view tag, meta-address
-  publishing model
+- **From ERC-5564:** asset-agnostic event-based announcement, 1-byte view
+  tag, meta-address publishing model
 - **From BIP-352:** per-sender labels (recipient-side payment-source tagging)
 - **Solana-specific:** Ed25519 spend keys (because the stealth address must
   itself be a valid Solana wallet), X25519 scan keys (for clean ECDH),
@@ -250,7 +250,7 @@ stealth_address = base58(compress(P_stealth))
 Sender then sends the asset to `stealth_address` and publishes the
 announcement tuple `(scheme_id = 0x0001, R, view_tag, metadata)`.
 
-The `metadata` field is opaque to the announcer. v1 wallets MAY use it for
+The `metadata` field is opaque to the pinboard. v1 wallets MAY use it for
 an encrypted memo (encryption keyed by `S`), but this is not standardized
 in v1. Max length: 64 bytes.
 
@@ -317,28 +317,33 @@ does ~256k expensive ops total (still <1 minute on commodity hardware).
 
 ---
 
-## 6. Announcer Program
+## 6. Pinboard Program
 
-A single deployed Solana program. Anchor IDL or equivalent. Permissionless,
-no admin keys.
+Umbra publishes stealth-payment announcements onto a generic on-chain
+primitive called **pinboard**: a single deployed Solana program that emits
+opaque tagged notes via Anchor events. Pinboard is permissionless and
+holds no state. It is designed to be reusable by any protocol that needs
+the "post tagged data publicly, recipients scan and recognize their own"
+shape — Umbra is its first consumer, but the contract itself is not
+Umbra-specific.
 
 ### 6.1 Instructions
 
 ```rust
-pub fn announce(
-    ctx: Context<Announce>,
-    scheme_id: u16,        // 0x0001 for v1
+pub fn post(
+    ctx: Context<Post>,
+    scheme_id: u16,        // 0x0001 for Umbra v1
     ephemeral_pub: [u8; 32], // R
     view_tag: u8,
     metadata: Vec<u8>,     // max 64 bytes
 ) -> Result<()>
 
-pub fn announce_batch(
-    ctx: Context<AnnounceBatch>,
-    entries: Vec<AnnouncementEntry>,
+pub fn post_batch(
+    ctx: Context<PostBatch>,
+    entries: Vec<NoteEntry>,
 ) -> Result<()>
 
-pub struct AnnouncementEntry {
+pub struct NoteEntry {
     pub scheme_id: u16,
     pub ephemeral_pub: [u8; 32],
     pub view_tag: u8,
@@ -348,22 +353,23 @@ pub struct AnnouncementEntry {
 
 **Validation:**
 
-- `scheme_id` is recorded but not validated against a whitelist. v1 clients
-  only process `0x0001`. Future schemes will be added by client updates.
+- `scheme_id` is recorded but not validated against a whitelist. Umbra v1
+  clients only process `0x0001`. Future schemes (and other protocols
+  using pinboard) will be added by client updates.
 - `metadata.len()` ≤ 64 bytes per entry. Exceeding this causes the
   instruction to fail.
-- `announce_batch` caps total entries at the tx compute-unit budget allows
-  (practical limit: ~50 entries per tx).
-- No on-chain storage of announcements. State is emitted via Anchor events
-  / `sol_log_data`.
+- `post_batch` caps total entries at what the tx compute-unit budget
+  allows (practical limit: ~50 entries per tx).
+- No on-chain storage of notes. State is emitted via Anchor events /
+  `sol_log_data`.
 
 ### 6.2 Event format
 
-Each `announce` invocation emits exactly one event. `announce_batch` emits
-one event per entry.
+Each `post` invocation emits exactly one event. `post_batch` emits one
+event per entry.
 
 ```
-Event: UmbraAnnouncement
+Event: Note
   - discriminator: 8 bytes (Anchor convention)
   - scheme_id:     u16   (2 bytes, little-endian)
   - ephemeral_pub: [u8; 32]
@@ -372,19 +378,20 @@ Event: UmbraAnnouncement
   - metadata:      bytes (metadata_len bytes)
 ```
 
-Total event size: 47-111 bytes.
+Total event size: 47-111 bytes. The Anchor 0.31 IDL camelCases the event
+name to `note` — clients parsing event logs should match on that string.
 
 ### 6.3 Cost
 
-- Single `announce`: ~5,000 lamports base tx fee. No rent (no state account).
-- `announce_batch` of N entries: still ~5,000-10,000 lamports for the tx
-  (depending on CU consumption). Marginal cost per announcement amortizes
-  toward ~100-200 lamports at N=50.
+- Single `post`: ~5,000 lamports base tx fee. No rent (no state account).
+- `post_batch` of N entries: still ~5,000-10,000 lamports for the tx
+  (depending on CU consumption). Marginal cost per note amortizes toward
+  ~100-200 lamports at N=50.
 
 ### 6.4 Forward compatibility with compressed accounts
 
 The event byte layout (fixed-size header + variable metadata) is
-Merkle-tree-friendly. A future v2 announcer can write the same payload as
+Merkle-tree-friendly. A future v2 pinboard can write the same payload as
 a Light Protocol compressed account commitment without changing the
 serialization format that scanners and indexers parse.
 
@@ -479,8 +486,8 @@ the announcement is published.
    This tx does NOT contain any Umbra instruction.
 3. Sender's wallet submits `(scheme_id, R, view_tag, metadata)` to an
    announcement service (§8.3).
-4. The service publishes the announcement on-chain via `announce(...)` or
-   `announce_batch(...)` in a tx paid by the service.
+4. The service publishes the announcement on-chain via `post(...)` or
+   `post_batch(...)` on the pinboard program, in a tx paid by the service.
 
 ### 8.2 Self-announce fallback
 
@@ -489,13 +496,13 @@ To prevent stranded funds if a service fails or censors:
 1. After step 8.1(3), the sender's wallet starts a timer with timeout `T`
    (recommended default: 60 seconds). The wallet retains the announcement
    payload in local state.
-2. The wallet subscribes to announcer-program logs and watches for an
-   announcement with matching `ephemeral_pub = R`.
+2. The wallet subscribes to pinboard-program logs and watches for a note
+   with matching `ephemeral_pub = R`.
 3. If such an announcement is observed before timeout `T`: success, the
    wallet discards the payload.
 4. If no matching announcement is observed within `T`: the wallet
-   constructs a `announce(scheme_id, R, view_tag, metadata)` tx itself,
-   paid from the sender's wallet, and submits it.
+   constructs a `post(scheme_id, R, view_tag, metadata)` tx against the
+   pinboard program itself, paid from the sender's wallet, and submits it.
 
 Idempotency: if the service and the sender both eventually announce (a
 race after the timeout), the recipient observes two announcements for the
@@ -691,10 +698,10 @@ than SOL/SPL sweeps due to the relayer-compensation challenge.
 
 ### 10.1 Self-scan via logs (trustless)
 
-Recipient wallets subscribe to `logsSubscribe` for the announcer program
-ID and process new announcements live. For historical backfill (e.g.,
-first sync), wallets use `getSignaturesForAddress` against the announcer
-program followed by `getTransaction` to retrieve logs.
+Recipient wallets subscribe to `logsSubscribe` for the pinboard program
+ID and process new notes live. For historical backfill (e.g., first
+sync), wallets use `getSignaturesForAddress` against the pinboard program
+followed by `getTransaction` to retrieve logs.
 
 **Limitation:** default Solana RPCs prune logs aggressively (hours, not
 days). Recipients who go offline for more than ~24 hours may need an
@@ -730,8 +737,9 @@ Response: { "indexed_through_slot": <u64>, "lag_seconds": <u32> }
 ```
 
 Indexers commit to retaining all announcements they ingest. The protocol
-defines correctness (faithfully report all announcer-program invocations)
-but not SLA. Multiple competing indexers prevent ecosystem capture.
+defines correctness (faithfully report all pinboard-program invocations
+that carry an Umbra `scheme_id`) but not SLA. Multiple competing indexers
+prevent ecosystem capture.
 
 **Privacy of the indexer query:** the indexer sees that someone polled
 slot ranges. It does NOT see which announcements matched (matching is
@@ -811,9 +819,9 @@ Wallets MAY additionally support §10.2 and §10.3.
 
 1. **Meta-address encoding version** (`version: u8` field in §3.2):
    describes the bytes of the meta-address. v1 = `0x01`.
-2. **Cryptographic scheme ID** (`scheme_id: u16` field in announcer
-   instruction): describes the cryptographic derivation used for the
-   announcement. v1 = `0x0001`.
+2. **Cryptographic scheme ID** (`scheme_id: u16` field in the pinboard
+   `post` instruction): describes the cryptographic derivation used for
+   the announcement. v1 = `0x0001`.
 
 These can evolve independently:
 
@@ -902,8 +910,8 @@ key:**
 
 ### 12.4 Spam and DoS
 
-The announcer program is permissionless. An attacker can submit garbage
-announcements to inflate recipient scan workloads.
+The pinboard program is permissionless. An attacker can submit garbage
+notes to inflate recipient scan workloads.
 
 **Cost analysis:**
 - Per-announcement cost to attacker: ~5,000 lamports (~$0.001) for single
@@ -960,8 +968,9 @@ Explicitly NOT in v1, but the design accommodates these as future work:
 
 The v1 release will include:
 
-1. **Anchor program (`programs/umbra-announcer`)**: the on-chain announcer
-   with `announce` and `announce_batch` instructions. ~150 lines of Rust.
+1. **Anchor program (`programs/pinboard`)**: the on-chain pinboard
+   primitive with `post` and `post_batch` instructions. ~150 lines of
+   Rust. Umbra is its first consumer; the contract itself is generic.
 2. **Wallet SDK (`packages/umbra-sdk`, TypeScript)**:
    - Key derivation from canonical signed message
    - Meta-address encode/decode (bech32m + label support)
@@ -970,12 +979,13 @@ The v1 release will include:
    - Recipient scan loop (logs and indexer modes)
    - Sweep tx construction with relayer integration
 3. **Reference indexer (`services/umbra-indexer`, Rust)**:
-   - Subscribes to announcer program logs
+   - Subscribes to pinboard program logs (filters by Umbra `scheme_id`)
    - Serves the HTTP protocol from §10.2
    - SQLite-backed; runnable as a single binary
-4. **Reference announcement service (`services/umbra-announcer-service`,
+4. **Reference announcement service (`services/umbra-publisher`,
    Rust or TypeScript)**:
-   - Receives announcement payloads, batches, submits on-chain
+   - Receives announcement payloads, batches, submits on-chain via the
+     pinboard `post_batch` instruction
    - HTTP protocol from §8.3
    - Stub payment model (no real economics; documented as not
      production-ready)
@@ -997,9 +1007,10 @@ operators.
 The following questions are explicitly deferred and not resolved by this
 spec:
 
-1. **Announcer program deploy address and authority key.** Who deploys
-   and upgrades the canonical announcer program? Probably immutable (no
-   upgrade authority) once deployed.
+1. **Pinboard program deploy address and authority key.** Who deploys
+   and upgrades the canonical pinboard program? Probably immutable (no
+   upgrade authority) once deployed. A vanity address prefix is planned
+   so the production deploy is identifiable on sight.
 2. **Bech32m HRP collision.** The HRP `umbra` is not formally registered.
    Should be verified against the SLIP-0173 registry.
 3. **Standard relayer pricing schema.** Whether the v1 spec should

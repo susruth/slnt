@@ -1,16 +1,16 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, EventParser, BorshCoder } from "@coral-xyz/anchor";
-import { UmbraAnnouncer } from "../target/types/umbra_announcer";
+import { Pinboard } from "../target/types/pinboard";
 import { expect } from "chai";
 
-describe("umbra-announcer", () => {
+describe("pinboard", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.UmbraAnnouncer as Program<UmbraAnnouncer>;
+  const program = anchor.workspace.Pinboard as Program<Pinboard>;
 
   /**
-   * Submit a tx, fetch its logs, and return all parsed Umbra events.
+   * Submit a tx, fetch its logs, and return all parsed pinboard events.
    */
   async function eventsFromTx(txSig: string) {
     // Wait for confirmation, then re-fetch with the logs.
@@ -29,7 +29,7 @@ describe("umbra-announcer", () => {
     return [...parser.parseLogs(tx.meta.logMessages)];
   }
 
-  it("emits exactly one UmbraAnnouncement for a single announce", async () => {
+  it("emits exactly one Note for a single post", async () => {
     const ephemeralPub = Buffer.from(
       "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
       "hex",
@@ -37,12 +37,12 @@ describe("umbra-announcer", () => {
     const metadata = Buffer.from([0xab, 0xcd]);
 
     const txSig = await program.methods
-      .announce(1, [...ephemeralPub], 0x42, metadata)
+      .post(1, [...ephemeralPub], 0x42, metadata)
       .rpc();
 
     const events = await eventsFromTx(txSig);
     expect(events).to.have.length(1);
-    expect(events[0].name).to.equal("umbraAnnouncement");
+    expect(events[0].name).to.equal("note");
 
     const data = events[0].data as {
       schemeId: number;
@@ -62,13 +62,13 @@ describe("umbra-announcer", () => {
 
     let threw = false;
     try {
-      await program.methods.announce(1, ephemeralPub, 0x00, metadata).rpc();
+      await program.methods.post(1, ephemeralPub, 0x00, metadata).rpc();
     } catch (err: any) {
       threw = true;
       const errMessage = err?.error?.errorMessage ?? err?.message ?? "";
       expect(errMessage).to.match(/metadata exceeds 64 bytes/i);
     }
-    expect(threw, "expected announce(metadata.len=65) to throw").to.equal(true);
+    expect(threw, "expected post(metadata.len=65) to throw").to.equal(true);
   });
 
   it("accepts metadata of exactly 64 bytes", async () => {
@@ -76,7 +76,7 @@ describe("umbra-announcer", () => {
     const metadata = Buffer.alloc(64, 0xbb); // 64 bytes — boundary
 
     const txSig = await program.methods
-      .announce(1, ephemeralPub, 0x00, metadata)
+      .post(1, ephemeralPub, 0x00, metadata)
       .rpc();
 
     const events = await eventsFromTx(txSig);
@@ -90,7 +90,7 @@ describe("umbra-announcer", () => {
     const metadata = Buffer.alloc(0);
 
     const txSig = await program.methods
-      .announce(1, ephemeralPub, 0x00, metadata)
+      .post(1, ephemeralPub, 0x00, metadata)
       .rpc();
 
     const events = await eventsFromTx(txSig);
@@ -99,7 +99,7 @@ describe("umbra-announcer", () => {
     expect(Buffer.from(data.metadata)).to.deep.equal(metadata);
   });
 
-  it("emits one event per entry for announce_batch", async () => {
+  it("emits one event per entry for post_batch", async () => {
     const entries = [
       {
         schemeId: 1,
@@ -121,7 +121,7 @@ describe("umbra-announcer", () => {
       },
     ];
 
-    const txSig = await program.methods.announceBatch(entries).rpc();
+    const txSig = await program.methods.postBatch(entries).rpc();
 
     const events = await eventsFromTx(txSig);
     expect(events).to.have.length(3);
@@ -133,7 +133,7 @@ describe("umbra-announcer", () => {
         viewTag: number;
         metadata: Buffer;
       };
-      expect(events[i].name).to.equal("umbraAnnouncement");
+      expect(events[i].name).to.equal("note");
       expect(data.schemeId).to.equal(entries[i].schemeId);
       expect(Buffer.from(data.ephemeralPub)).to.deep.equal(
         Buffer.from(entries[i].ephemeralPub),
@@ -146,13 +146,13 @@ describe("umbra-announcer", () => {
   it("rejects an empty batch", async () => {
     let threw = false;
     try {
-      await program.methods.announceBatch([]).rpc();
+      await program.methods.postBatch([]).rpc();
     } catch (err: any) {
       threw = true;
       const errMessage = err?.error?.errorMessage ?? err?.message ?? "";
       expect(errMessage).to.match(/batch must contain at least one entry/i);
     }
-    expect(threw, "expected announce_batch([]) to throw").to.equal(true);
+    expect(threw, "expected post_batch([]) to throw").to.equal(true);
   });
 
   it("rejects a batch where any entry has oversized metadata", async () => {
@@ -173,7 +173,7 @@ describe("umbra-announcer", () => {
 
     let threw = false;
     try {
-      await program.methods.announceBatch(entries).rpc();
+      await program.methods.postBatch(entries).rpc();
     } catch (err: any) {
       threw = true;
       const errMessage = err?.error?.errorMessage ?? err?.message ?? "";
@@ -203,24 +203,24 @@ describe("umbra-announcer", () => {
 
     let txSig: string | undefined;
     try {
-      txSig = await program.methods.announceBatch(entries).rpc();
+      txSig = await program.methods.postBatch(entries).rpc();
     } catch (_) {
       // expected to throw
     }
     expect(txSig).to.equal(undefined);
   });
 
-  it("allows the same announcement to be published twice", async () => {
-    // Per spec, the announcer holds no state. A replayed announcement
-    // is legal; recipients deduplicate by R themselves.
+  it("allows the same note to be posted twice", async () => {
+    // Per spec, the pinboard holds no state. A replayed note is legal;
+    // recipients deduplicate by R themselves.
     const ephemeralPub = new Array(32).fill(0x77);
     const metadata = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
 
     const tx1 = await program.methods
-      .announce(1, ephemeralPub, 0x77, metadata)
+      .post(1, ephemeralPub, 0x77, metadata)
       .rpc();
     const tx2 = await program.methods
-      .announce(1, ephemeralPub, 0x77, metadata)
+      .post(1, ephemeralPub, 0x77, metadata)
       .rpc();
 
     const events1 = await eventsFromTx(tx1);
@@ -238,7 +238,7 @@ describe("umbra-announcer", () => {
     const ephemeralPub = new Array(32).fill(0x00);
 
     const txSig = await program.methods
-      .announce(0, ephemeralPub, 0x00, Buffer.alloc(0))
+      .post(0, ephemeralPub, 0x00, Buffer.alloc(0))
       .rpc();
 
     const events = await eventsFromTx(txSig);
@@ -251,7 +251,7 @@ describe("umbra-announcer", () => {
     const ephemeralPub = new Array(32).fill(0x00);
 
     const txSig = await program.methods
-      .announce(0xffff, ephemeralPub, 0x00, Buffer.alloc(0))
+      .post(0xffff, ephemeralPub, 0x00, Buffer.alloc(0))
       .rpc();
 
     const events = await eventsFromTx(txSig);
@@ -268,7 +268,7 @@ describe("umbra-announcer", () => {
       metadata: Buffer.from([i, i + 1, i + 2]),
     }));
 
-    const txSig = await program.methods.announceBatch(entries).rpc();
+    const txSig = await program.methods.postBatch(entries).rpc();
 
     const events = await eventsFromTx(txSig);
     expect(events).to.have.length(20);

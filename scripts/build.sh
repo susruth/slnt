@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the umbra-announcer program, its IDL, and its TS types.
+# Build the pinboard program, its IDL, and its TS types.
 #
 # Why this script exists: as of Solana CLI 2.3.0, the bundled
 # `cargo-build-sbf` defaults to platform-tools v1.48 (cargo 1.84.0), which
@@ -17,7 +17,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PROGRAM=umbra_announcer
+PROGRAM=pinboard
 TOOLS_VERSION=v1.54
 
 anchor build --no-idl -- --tools-version "$TOOLS_VERSION"

@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-umbra_announcer = "G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P"
+pinboard = "G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P"
 
 [programs.devnet]
-umbra_announcer = "G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P"
+pinboard = "G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P"
 
 [registry]
 url = "https://api.apr.dev"
