@@ -368,11 +368,11 @@ Event: UmbraAnnouncement
   - scheme_id:     u16   (2 bytes, little-endian)
   - ephemeral_pub: [u8; 32]
   - view_tag:      u8
-  - metadata_len:  u16   (length of metadata, 0-64)
+  - metadata_len:  u32   (4 bytes, little-endian; Anchor/borsh Vec<u8> length prefix)
   - metadata:      bytes (metadata_len bytes)
 ```
 
-Total event size: 45-109 bytes.
+Total event size: 47-111 bytes.
 
 ### 6.3 Cost
 
