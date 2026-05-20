@@ -55,4 +55,49 @@ describe("umbra-announcer", () => {
     expect(data.viewTag).to.equal(0x42);
     expect(Buffer.from(data.metadata)).to.deep.equal(metadata);
   });
+
+  it("rejects metadata longer than 64 bytes", async () => {
+    const ephemeralPub = new Array(32).fill(0);
+    const metadata = Buffer.alloc(65, 0xaa); // 65 bytes
+
+    let threw = false;
+    try {
+      await program.methods
+        .announce(1, ephemeralPub, 0x00, metadata)
+        .rpc();
+    } catch (err: any) {
+      threw = true;
+      const errMessage = err?.error?.errorMessage ?? err?.message ?? "";
+      expect(errMessage).to.match(/metadata exceeds 64 bytes/i);
+    }
+    expect(threw, "expected announce(metadata.len=65) to throw").to.equal(true);
+  });
+
+  it("accepts metadata of exactly 64 bytes", async () => {
+    const ephemeralPub = new Array(32).fill(0);
+    const metadata = Buffer.alloc(64, 0xbb); // 64 bytes — boundary
+
+    const txSig = await program.methods
+      .announce(1, ephemeralPub, 0x00, metadata)
+      .rpc();
+
+    const events = await eventsFromTx(txSig);
+    expect(events).to.have.length(1);
+    const data = events[0].data as { metadata: Buffer };
+    expect(Buffer.from(data.metadata)).to.deep.equal(metadata);
+  });
+
+  it("accepts empty metadata", async () => {
+    const ephemeralPub = new Array(32).fill(0);
+    const metadata = Buffer.alloc(0);
+
+    const txSig = await program.methods
+      .announce(1, ephemeralPub, 0x00, metadata)
+      .rpc();
+
+    const events = await eventsFromTx(txSig);
+    expect(events).to.have.length(1);
+    const data = events[0].data as { metadata: Buffer };
+    expect(Buffer.from(data.metadata)).to.deep.equal(metadata);
+  });
 });
