@@ -25,6 +25,8 @@ base64 = "0.22"
 [dev-dependencies]
 rand_chacha = "0.3"
 hex = "0.4"
+solana-client = "2.3"
+solana-system-interface = "1"
 
 [[example]]
 name = "lifecycle"
