@@ -122,10 +122,148 @@ fn main() {
     println!("  stealth balance: {stealth_balance} lamports");
     assert_eq!(stealth_balance, ONE_SOL);
 
-    // Defer task 10 stages — placeholders.
-    println!("\n[5/6] recipient: scanning … (next task)");
-    println!("[6/6] recipient: sweeping  … (next task)");
-    let _ = (recipient_wallet, spend, scan); // suppress unused warnings
+    // ---- 5. Recipient: scan pinboard logs ----
+    println!("\n[5/6] recipient: scanning pinboard logs");
+    let matched = scan_pinboard_for_match(&rpc, &pinboard_id, &spend, &scan)
+        .expect("scan returned a match");
+    println!("  found match: stealth address {}", matched.stealth_address);
+    assert_eq!(matched.stealth_address, payment.stealth_address);
+
+    // ---- 6. Recipient: sweep stealth address ----
+    println!("\n[6/6] recipient: sweeping stealth balance to main wallet");
+    let stealth_signing_key =
+        umbra_sdk::stealth_signing::StealthSigningKey::new(matched.stealth_scalar);
+    // Sanity check before we sign anything: the signing key's public
+    // bytes must equal the stealth address bytes.
+    assert_eq!(
+        stealth_signing_key.public_bytes(),
+        payment.stealth_address.to_bytes(),
+    );
+
+    let recipient_before = rpc
+        .get_balance(&recipient_wallet.pubkey())
+        .expect("recipient balance before");
+    let stealth_before = rpc
+        .get_balance(&payment.stealth_address)
+        .expect("stealth balance before");
+    const TX_FEE: u64 = 5_000;
+    let sweep_amount = stealth_before - TX_FEE;
+
+    let sweep_ix = solana_system_interface::instruction::transfer(
+        &payment.stealth_address,
+        &recipient_wallet.pubkey(),
+        sweep_amount,
+    );
+    let latest_blockhash = rpc
+        .get_latest_blockhash()
+        .expect("get_latest_blockhash for sweep");
+
+    // Build the message and sign it manually using our scalar-mode key.
+    let message = solana_sdk::message::Message::new_with_blockhash(
+        &[sweep_ix],
+        Some(&payment.stealth_address),
+        &latest_blockhash,
+    );
+    let message_bytes = message.serialize();
+    let ed_sig = stealth_signing_key.sign(&message_bytes);
+    let signature = solana_sdk::signature::Signature::from(ed_sig.to_bytes());
+
+    let sweep_tx = solana_sdk::transaction::Transaction {
+        signatures: vec![signature],
+        message,
+    };
+    // Solana's local validator double-checks signatures during simulation;
+    // verify ours locally too to fail fast if anything is off.
+    sweep_tx
+        .verify()
+        .expect("locally-built sweep tx must verify");
+
+    let sweep_sig = rpc
+        .send_and_confirm_transaction(&sweep_tx)
+        .expect("send_and_confirm_transaction (sweep)");
+    println!("  sweep tx: {sweep_sig}");
+
+    let recipient_after = rpc
+        .get_balance(&recipient_wallet.pubkey())
+        .expect("recipient balance after");
+    let stealth_after = rpc
+        .get_balance(&payment.stealth_address)
+        .expect("stealth balance after");
+    println!("  recipient balance: {recipient_before} → {recipient_after}");
+    println!("  stealth balance:   {stealth_before} → {stealth_after}");
+
+    // ---- Verification ----
+    assert_eq!(stealth_after, 0, "stealth account should drain to 0");
+    let recipient_gain = recipient_after - recipient_before;
+    assert_eq!(
+        recipient_gain, sweep_amount,
+        "recipient should gain exactly the swept lamports"
+    );
+    println!("\n== SUCCESS: stealth payment delivered and swept ==");
+    println!("   {} lamports moved to recipient through a stealth address", recipient_gain);
+}
+
+/// Scan recent pinboard transactions, parse Note events, and try
+/// `scan_note` until we find one for the given (spend, scan) pair.
+/// Times out after ~10 seconds of polling.
+fn scan_pinboard_for_match(
+    rpc: &RpcClient,
+    pinboard_id: &Pubkey,
+    spend: &umbra_sdk::keys::SpendKey,
+    scan: &umbra_sdk::keys::ScanKey,
+) -> Option<umbra_sdk::recipient::NoteMatch> {
+    use solana_client::rpc_client::GetConfirmedSignaturesForAddress2Config;
+    use solana_sdk::commitment_config::CommitmentConfig;
+
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        let cfg = GetConfirmedSignaturesForAddress2Config {
+            before: None,
+            until: None,
+            limit: Some(100),
+            commitment: Some(CommitmentConfig::confirmed()),
+        };
+        let sigs = rpc
+            .get_signatures_for_address_with_config(pinboard_id, cfg)
+            .unwrap_or_default();
+        for sig_info in &sigs {
+            let sig = sig_info
+                .signature
+                .parse::<solana_sdk::signature::Signature>()
+                .ok();
+            let Some(sig) = sig else { continue };
+            let tx = rpc.get_transaction_with_config(
+                &sig,
+                solana_client::rpc_config::RpcTransactionConfig {
+                    encoding: Some(solana_transaction_status::UiTransactionEncoding::Json),
+                    commitment: Some(CommitmentConfig::confirmed()),
+                    max_supported_transaction_version: Some(0),
+                },
+            );
+            let Ok(tx) = tx else { continue };
+            let logs: Vec<String> = tx
+                .transaction
+                .meta
+                .map(|m| {
+                    let opt: Option<Vec<String>> = m.log_messages.into();
+                    opt.unwrap_or_default()
+                })
+                .unwrap_or_default();
+            for line in logs {
+                if let Ok(Some(note)) = umbra_sdk::pinboard::try_parse_note_log(&line) {
+                    if let Ok(Some(m)) = umbra_sdk::recipient::scan_note(
+                        spend, scan, &note.ephemeral_pub, note.view_tag,
+                    ) {
+                        return Some(m);
+                    }
+                }
+            }
+        }
+        if std::time::Instant::now() > deadline {
+            return None;
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    }
 }
 
 /// Request an airdrop and poll until the balance is at least
