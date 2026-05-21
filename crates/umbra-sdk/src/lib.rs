@@ -2,5 +2,6 @@
 
 pub mod error;
 pub mod keys;
+pub mod sender;
 
 pub use error::UmbraError;
