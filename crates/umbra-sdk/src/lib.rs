@@ -2,6 +2,7 @@
 
 pub mod error;
 pub mod keys;
+pub mod pinboard;
 pub mod recipient;
 pub mod sender;
 pub mod stealth_signing;
