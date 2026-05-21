@@ -4,5 +4,6 @@ pub mod error;
 pub mod keys;
 pub mod recipient;
 pub mod sender;
+pub mod stealth_signing;
 
 pub use error::UmbraError;
