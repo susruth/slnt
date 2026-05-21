@@ -11,6 +11,7 @@
 //!   5. Recipient    — sweep stealth address to main wallet
 //!   6. Verification — assert balances
 
+use ed25519_dalek::Signer as _;
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
 use solana_client::rpc_client::RpcClient;
@@ -36,12 +37,12 @@ fn main() {
     );
 
     println!("== Umbra lifecycle demo ==");
-    println!("RPC: {}", RPC_URL);
+    println!("RPC: {RPC_URL}");
     let pinboard_id = Pubkey::from_str(PINBOARD_PROGRAM_ID)
         .expect("PINBOARD_PROGRAM_ID parse");
     println!("pinboard program: {pinboard_id}");
 
-    // 1. Setup: keypairs + airdrops.
+    // ---- 1. Setup ----
     println!("\n[1/6] setup: creating keypairs");
     let sender_wallet = Keypair::new();
     let recipient_wallet = Keypair::new();
@@ -50,21 +51,81 @@ fn main() {
 
     airdrop_blocking(&rpc, &sender_wallet.pubkey(), 10 * ONE_SOL);
     airdrop_blocking(&rpc, &recipient_wallet.pubkey(), 10 * ONE_SOL);
-    println!("  airdropped 10 SOL to each");
 
-    // Sanity check: balances are visible.
-    println!(
-        "  sender balance after airdrop:    {} lamports",
-        rpc.get_balance(&sender_wallet.pubkey()).expect("get_balance")
-    );
-    println!(
-        "  recipient balance after airdrop: {} lamports",
-        rpc.get_balance(&recipient_wallet.pubkey()).expect("get_balance")
-    );
+    // ---- 2. Recipient: derive stealth keys + meta-address ----
+    println!("\n[2/6] recipient: deriving stealth keys");
+    // For the demo, "sign" the canonical message with a fresh Ed25519
+    // keypair derived from a fixed seed. In production this would be
+    // a user wallet signature.
+    let canonical_msg = umbra_sdk::keys::CANONICAL_MESSAGE_LOCALNET.as_bytes();
+    let recipient_id_seed: [u8; 32] = [
+        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
+        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
+        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
+        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
+    ];
+    let recipient_id_sk =
+        ed25519_dalek::SigningKey::from_bytes(&recipient_id_seed);
+    let signature: ed25519_dalek::Signature = recipient_id_sk.sign(canonical_msg);
+    let sig_bytes: [u8; 64] = signature.to_bytes();
 
-    // Suppress unused warnings until later tasks wire these in.
-    let _ = ChaCha20Rng::seed_from_u64(0);
-    let _ = pinboard_id;
+    let (spend, scan) = umbra_sdk::keys::derive_stealth_keys(&sig_bytes)
+        .expect("derive_stealth_keys");
+    let meta = umbra_sdk::keys::MetaAddress::from_keys(&spend, &scan);
+    let meta_str = meta.encode_bech32m().expect("encode meta-address");
+    println!("  meta-address: {meta_str}");
+
+    // ---- 3. Sender: derive stealth address ----
+    println!("\n[3/6] sender: deriving stealth address");
+    let decoded_meta =
+        umbra_sdk::keys::MetaAddress::decode_bech32m(&meta_str)
+            .expect("decode meta-address");
+    // Use a strong RNG in production. Seeded here so demo output is
+    // reproducible across runs.
+    let mut sender_rng = ChaCha20Rng::seed_from_u64(0xdeadbeef);
+    let payment = umbra_sdk::sender::derive_payment(&decoded_meta, &mut sender_rng)
+        .expect("derive_payment");
+    println!("  stealth address: {}", payment.stealth_address);
+    println!("  ephemeral_pub:   {}", hex::encode(payment.ephemeral_pub));
+    println!("  view_tag:        0x{:02x}", payment.view_tag);
+
+    // ---- 4. Sender: transfer SOL + post pinboard Note in one tx ----
+    println!("\n[4/6] sender: sending 1 SOL + posting note");
+    let transfer_ix = solana_system_interface::instruction::transfer(
+        &sender_wallet.pubkey(),
+        &payment.stealth_address,
+        ONE_SOL,
+    );
+    let post_ix = umbra_sdk::pinboard::build_post_instruction(
+        &pinboard_id,
+        &sender_wallet.pubkey(),
+        umbra_sdk::keys::SCHEME_ID_V1,
+        payment.ephemeral_pub,
+        payment.view_tag,
+        vec![], // metadata: empty for demo
+    );
+    let latest_blockhash =
+        rpc.get_latest_blockhash().expect("get_latest_blockhash");
+    let tx = solana_sdk::transaction::Transaction::new_signed_with_payer(
+        &[transfer_ix, post_ix],
+        Some(&sender_wallet.pubkey()),
+        &[&sender_wallet],
+        latest_blockhash,
+    );
+    let sig = rpc
+        .send_and_confirm_transaction(&tx)
+        .expect("send_and_confirm_transaction (payment + post)");
+    println!("  payment tx: {sig}");
+    let stealth_balance = rpc
+        .get_balance(&payment.stealth_address)
+        .expect("get_balance stealth");
+    println!("  stealth balance: {stealth_balance} lamports");
+    assert_eq!(stealth_balance, ONE_SOL);
+
+    // Defer task 10 stages — placeholders.
+    println!("\n[5/6] recipient: scanning … (next task)");
+    println!("[6/6] recipient: sweeping  … (next task)");
+    let _ = (recipient_wallet, spend, scan); // suppress unused warnings
 }
 
 /// Request an airdrop and poll until the balance is at least
