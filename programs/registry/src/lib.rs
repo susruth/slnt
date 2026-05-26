@@ -34,6 +34,32 @@ pub mod umbra_registry {
         });
         Ok(())
     }
+
+    pub fn update(
+        ctx: Context<Update>,
+        scheme_id: u16,
+        payload: MetaAddressPayload,
+    ) -> Result<()> {
+        require!(scheme_id != 0, RegistryError::InvalidSchemeId);
+        require!(payload.version == 1, RegistryError::InvalidVersion);
+        require!(payload.flags == 0, RegistryError::InvalidFlags);
+
+        let entry = &mut ctx.accounts.entry;
+        entry.version = payload.version;
+        entry.b_spend = payload.b_spend;
+        entry.b_scan = payload.b_scan;
+        entry.flags = payload.flags;
+
+        emit!(MetaAddressUpdated {
+            registrant: entry.registrant,
+            scheme_id,
+            version: payload.version,
+            b_spend: payload.b_spend,
+            b_scan: payload.b_scan,
+            flags: payload.flags,
+        });
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -52,6 +78,20 @@ pub struct Register<'info> {
     pub entry: Account<'info, MetaAddressEntry>,
 
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(scheme_id: u16)]
+pub struct Update<'info> {
+    pub registrant: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"meta", registrant.key().as_ref(), &scheme_id.to_le_bytes()],
+        bump = entry.bump,
+        has_one = registrant,
+    )]
+    pub entry: Account<'info, MetaAddressEntry>,
 }
 
 #[account]

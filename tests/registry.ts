@@ -213,4 +213,135 @@ describe("registry", () => {
     }
     expect(errMessage).to.match(/flags must be 0x00/i);
   });
+
+  it("update: changes fields in-place and emits event", async () => {
+    const registrant = await freshFunded();
+    const schemeId = 1;
+    const [entry] = pda(registrant.publicKey, schemeId);
+
+    await program.methods
+      .register(schemeId, validPayload())
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    const newPayload = {
+      version: 1,
+      bSpend: new Array(32).fill(0xcc),
+      bScan: new Array(32).fill(0xdd),
+      flags: 0,
+    };
+
+    const accountBefore = await provider.connection.getAccountInfo(entry);
+    const sizeBefore = accountBefore!.data.length;
+
+    const txSig = await program.methods
+      .update(schemeId, newPayload)
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    const account = await program.account.metaAddressEntry.fetch(entry);
+    expect(Buffer.from(account.bSpend)).to.deep.equal(
+      Buffer.from(new Array(32).fill(0xcc)),
+    );
+    expect(Buffer.from(account.bScan)).to.deep.equal(
+      Buffer.from(new Array(32).fill(0xdd)),
+    );
+
+    const accountAfter = await provider.connection.getAccountInfo(entry);
+    expect(accountAfter!.data.length).to.equal(sizeBefore);
+
+    const events = await eventsFromTx(txSig);
+    expect(events).to.have.length(1);
+    expect(events[0].name).to.equal("metaAddressUpdated");
+  });
+
+  it("update: non-existent PDA fails", async () => {
+    const registrant = await freshFunded();
+    let threw = false;
+    try {
+      await program.methods
+        .update(1, validPayload())
+        .accounts({
+          registrant: registrant.publicKey,
+        })
+        .signers([registrant])
+        .rpc();
+    } catch (_err) {
+      threw = true;
+    }
+    expect(threw, "expected update on non-existent PDA to fail").to.equal(true);
+  });
+
+  it("update: non-registrant signer fails", async () => {
+    const registrant = await freshFunded();
+    const attacker = await freshFunded();
+    const schemeId = 1;
+    const [entry] = pda(registrant.publicKey, schemeId);
+
+    await program.methods
+      .register(schemeId, validPayload())
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    let threw = false;
+    try {
+      // Attacker tries to call update with their own pubkey as `registrant`
+      // while explicitly passing the original registrant's `entry`. We must
+      // use `.accountsPartial()` here so we can override Anchor's
+      // auto-derivation of `entry` and force it to point at the wrong PDA.
+      // Without this override the test would only verify "can't update a
+      // non-existent PDA" — which the previous test already covers.
+      await program.methods
+        .update(schemeId, validPayload())
+        .accountsPartial({
+          registrant: attacker.publicKey,
+          entry, // the original entry, owned by `registrant`
+        })
+        .signers([attacker])
+        .rpc();
+    } catch (_err) {
+      threw = true;
+    }
+    expect(threw, "expected non-registrant update to fail").to.equal(true);
+  });
+
+  it("update: validations fire (version = 2)", async () => {
+    // We can't actually call update with scheme_id = 0 against an existing
+    // entry because scheme_id is in the seeds — the PDA wouldn't match.
+    // But the require!() check still fires before account validation when
+    // we test an invalid version on a valid scheme_id.
+    const registrant = await freshFunded();
+    const schemeId = 1;
+
+    await program.methods
+      .register(schemeId, validPayload())
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    let errMessage = "";
+    try {
+      await program.methods
+        .update(schemeId, { ...validPayload(), version: 2 })
+        .accounts({
+          registrant: registrant.publicKey,
+        })
+        .signers([registrant])
+        .rpc();
+    } catch (err: any) {
+      errMessage = err?.error?.errorMessage ?? err?.message ?? "";
+    }
+    expect(errMessage).to.match(/only meta-address version 0x01/i);
+  });
 });
