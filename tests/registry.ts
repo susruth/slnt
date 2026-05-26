@@ -344,4 +344,112 @@ describe("registry", () => {
     }
     expect(errMessage).to.match(/only meta-address version 0x01/i);
   });
+
+  it("close: closes PDA, returns rent, emits event", async () => {
+    const registrant = await freshFunded();
+    const schemeId = 1;
+    const [entry] = pda(registrant.publicKey, schemeId);
+
+    await program.methods
+      .register(schemeId, validPayload())
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    const balBefore = await provider.connection.getBalance(registrant.publicKey);
+    const accountBefore = await provider.connection.getAccountInfo(entry);
+    const rent = accountBefore!.lamports;
+
+    const txSig = await program.methods
+      .close(schemeId)
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    // Account should no longer exist.
+    const accountAfter = await provider.connection.getAccountInfo(entry);
+    expect(accountAfter).to.equal(null);
+
+    // Registrant balance increases by ~rent (minus tx fee).
+    const balAfter = await provider.connection.getBalance(registrant.publicKey);
+    // Allow up to 100k lamports tx-fee slack.
+    expect(balAfter).to.be.greaterThan(balBefore + rent - 100_000);
+
+    const events = await eventsFromTx(txSig);
+    expect(events).to.have.length(1);
+    expect(events[0].name).to.equal("metaAddressClosed");
+    const data = events[0].data as { schemeId: number };
+    expect(data.schemeId).to.equal(schemeId);
+  });
+
+  it("close then register: same key can be re-registered", async () => {
+    const registrant = await freshFunded();
+    const schemeId = 1;
+    const [entry] = pda(registrant.publicKey, schemeId);
+
+    await program.methods
+      .register(schemeId, validPayload())
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    await program.methods
+      .close(schemeId)
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    // Re-register: should succeed because the PDA is closed.
+    await program.methods
+      .register(schemeId, validPayload())
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    const account = await program.account.metaAddressEntry.fetch(entry);
+    expect(account.schemeId).to.equal(schemeId);
+  });
+
+  it("close: non-registrant signer fails", async () => {
+    const registrant = await freshFunded();
+    const attacker = await freshFunded();
+    const schemeId = 1;
+    const [entry] = pda(registrant.publicKey, schemeId);
+
+    await program.methods
+      .register(schemeId, validPayload())
+      .accounts({
+        registrant: registrant.publicKey,
+      })
+      .signers([registrant])
+      .rpc();
+
+    let threw = false;
+    try {
+      // Attacker signs as themselves but explicitly passes the original
+      // registrant's PDA via accountsPartial — same security-boundary test
+      // pattern as the update non-registrant test.
+      await program.methods
+        .close(schemeId)
+        .accountsPartial({
+          registrant: attacker.publicKey,
+          entry,
+        })
+        .signers([attacker])
+        .rpc();
+    } catch (_err) {
+      threw = true;
+    }
+    expect(threw, "expected non-registrant close to fail").to.equal(true);
+  });
 });

@@ -60,6 +60,14 @@ pub mod umbra_registry {
         });
         Ok(())
     }
+
+    pub fn close(ctx: Context<Close>, scheme_id: u16) -> Result<()> {
+        emit!(MetaAddressClosed {
+            registrant: ctx.accounts.entry.registrant,
+            scheme_id,
+        });
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -90,6 +98,22 @@ pub struct Update<'info> {
         seeds = [b"meta", registrant.key().as_ref(), &scheme_id.to_le_bytes()],
         bump = entry.bump,
         has_one = registrant,
+    )]
+    pub entry: Account<'info, MetaAddressEntry>,
+}
+
+#[derive(Accounts)]
+#[instruction(scheme_id: u16)]
+pub struct Close<'info> {
+    #[account(mut)]
+    pub registrant: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"meta", registrant.key().as_ref(), &scheme_id.to_le_bytes()],
+        bump = entry.bump,
+        has_one = registrant,
+        close = registrant,
     )]
     pub entry: Account<'info, MetaAddressEntry>,
 }
