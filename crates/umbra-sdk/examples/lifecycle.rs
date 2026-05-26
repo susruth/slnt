@@ -26,7 +26,7 @@ const RPC_URL: &str = "http://127.0.0.1:8899";
 
 /// Pinboard program ID (current dev keypair; baked in for demo
 /// reproducibility — the shell wrapper deploys it).
-const PINBOARD_PROGRAM_ID: &str = "G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P";
+const PINBOARD_PROGRAM_ID: &str = "SLNTiiEuVeeSCBeYC86i2sSf3j7GdXx5crHzhEQfidB";
 
 const ONE_SOL: u64 = 1_000_000_000;
 

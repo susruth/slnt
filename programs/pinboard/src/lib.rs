@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P");
+declare_id!("SLNTiiEuVeeSCBeYC86i2sSf3j7GdXx5crHzhEQfidB");
 
 /// Maximum length of the optional `metadata` field in a note,
 /// in bytes. See spec §6.1.

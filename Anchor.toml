@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-pinboard = "G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P"
+pinboard = "SLNTiiEuVeeSCBeYC86i2sSf3j7GdXx5crHzhEQfidB"
 
 [programs.devnet]
-pinboard = "G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P"
+pinboard = "SLNTiiEuVeeSCBeYC86i2sSf3j7GdXx5crHzhEQfidB"
 
 [registry]
 url = "https://api.apr.dev"
