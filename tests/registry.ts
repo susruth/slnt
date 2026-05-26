@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, EventParser, BorshCoder } from "@coral-xyz/anchor";
 import { UmbraRegistry } from "../target/types/umbra_registry";
-import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
+import { PublicKey, Keypair } from "@solana/web3.js";
 import { expect } from "chai";
 
 describe("registry", () => {
@@ -61,8 +61,6 @@ describe("registry", () => {
       .register(schemeId, validPayload())
       .accounts({
         registrant: registrant.publicKey,
-        entry,
-        systemProgram: SystemProgram.programId,
       })
       .signers([registrant])
       .rpc();
@@ -92,14 +90,11 @@ describe("registry", () => {
   it("register: same (registrant, scheme_id) twice fails", async () => {
     const registrant = await freshFunded();
     const schemeId = 1;
-    const [entry] = pda(registrant.publicKey, schemeId);
 
     await program.methods
       .register(schemeId, validPayload())
       .accounts({
         registrant: registrant.publicKey,
-        entry,
-        systemProgram: SystemProgram.programId,
       })
       .signers([registrant])
       .rpc();
@@ -110,8 +105,6 @@ describe("registry", () => {
         .register(schemeId, validPayload())
         .accounts({
           registrant: registrant.publicKey,
-          entry,
-          systemProgram: SystemProgram.programId,
         })
         .signers([registrant])
         .rpc();
@@ -126,16 +119,12 @@ describe("registry", () => {
     const [entry1] = pda(registrant.publicKey, 1);
     const [entry2] = pda(registrant.publicKey, 2);
 
-    // Note: we use scheme_id=2 here purely to test PDA independence.
-    // The version-check tests in Task 4 confirm we don't accept arbitrary
-    // versions. The current `validPayload` has version=1, which the
-    // v1 program accepts.
+    // We use scheme_id=2 here purely to test PDA independence; the
+    // payload itself is the v1-valid one.
     await program.methods
       .register(1, validPayload())
       .accounts({
         registrant: registrant.publicKey,
-        entry: entry1,
-        systemProgram: SystemProgram.programId,
       })
       .signers([registrant])
       .rpc();
@@ -144,8 +133,6 @@ describe("registry", () => {
       .register(2, validPayload())
       .accounts({
         registrant: registrant.publicKey,
-        entry: entry2,
-        systemProgram: SystemProgram.programId,
       })
       .signers([registrant])
       .rpc();
@@ -158,15 +145,12 @@ describe("registry", () => {
 
   it("register: scheme_id = 0 fails with InvalidSchemeId", async () => {
     const registrant = await freshFunded();
-    const [entry] = pda(registrant.publicKey, 0);
     let errMessage = "";
     try {
       await program.methods
         .register(0, validPayload())
         .accounts({
           registrant: registrant.publicKey,
-          entry,
-          systemProgram: SystemProgram.programId,
         })
         .signers([registrant])
         .rpc();
@@ -178,7 +162,6 @@ describe("registry", () => {
 
   it("register: version != 0x01 fails with InvalidVersion", async () => {
     const registrant = await freshFunded();
-    const [entry] = pda(registrant.publicKey, 1);
     const badPayload = { ...validPayload(), version: 2 };
     let errMessage = "";
     try {
@@ -186,8 +169,6 @@ describe("registry", () => {
         .register(1, badPayload)
         .accounts({
           registrant: registrant.publicKey,
-          entry,
-          systemProgram: SystemProgram.programId,
         })
         .signers([registrant])
         .rpc();
@@ -199,7 +180,6 @@ describe("registry", () => {
 
   it("register: version = 0 fails with InvalidVersion", async () => {
     const registrant = await freshFunded();
-    const [entry] = pda(registrant.publicKey, 1);
     const badPayload = { ...validPayload(), version: 0 };
     let errMessage = "";
     try {
@@ -207,8 +187,6 @@ describe("registry", () => {
         .register(1, badPayload)
         .accounts({
           registrant: registrant.publicKey,
-          entry,
-          systemProgram: SystemProgram.programId,
         })
         .signers([registrant])
         .rpc();
@@ -220,7 +198,6 @@ describe("registry", () => {
 
   it("register: flags != 0 fails with InvalidFlags", async () => {
     const registrant = await freshFunded();
-    const [entry] = pda(registrant.publicKey, 1);
     const badPayload = { ...validPayload(), flags: 1 };
     let errMessage = "";
     try {
@@ -228,8 +205,6 @@ describe("registry", () => {
         .register(1, badPayload)
         .accounts({
           registrant: registrant.publicKey,
-          entry,
-          systemProgram: SystemProgram.programId,
         })
         .signers([registrant])
         .rpc();
