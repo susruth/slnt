@@ -5,6 +5,49 @@ declare_id!("CFSsGrZaZz9ZsPayKWSRkLp6xd28HCWwXhpdQFMyupXC");
 #[program]
 pub mod umbra_registry {
     use super::*;
+
+    pub fn register(
+        ctx: Context<Register>,
+        scheme_id: u16,
+        payload: MetaAddressPayload,
+    ) -> Result<()> {
+        let entry = &mut ctx.accounts.entry;
+        entry.registrant = ctx.accounts.registrant.key();
+        entry.scheme_id = scheme_id;
+        entry.bump = ctx.bumps.entry;
+        entry.version = payload.version;
+        entry.b_spend = payload.b_spend;
+        entry.b_scan = payload.b_scan;
+        entry.flags = payload.flags;
+
+        emit!(MetaAddressRegistered {
+            registrant: entry.registrant,
+            scheme_id,
+            version: payload.version,
+            b_spend: payload.b_spend,
+            b_scan: payload.b_scan,
+            flags: payload.flags,
+        });
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+#[instruction(scheme_id: u16)]
+pub struct Register<'info> {
+    #[account(mut)]
+    pub registrant: Signer<'info>,
+
+    #[account(
+        init,
+        payer = registrant,
+        space = 8 + MetaAddressEntry::SIZE,
+        seeds = [b"meta", registrant.key().as_ref(), &scheme_id.to_le_bytes()],
+        bump,
+    )]
+    pub entry: Account<'info, MetaAddressEntry>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
