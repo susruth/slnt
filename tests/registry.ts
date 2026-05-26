@@ -155,4 +155,87 @@ describe("registry", () => {
     expect(account1.schemeId).to.equal(1);
     expect(account2.schemeId).to.equal(2);
   });
+
+  it("register: scheme_id = 0 fails with InvalidSchemeId", async () => {
+    const registrant = await freshFunded();
+    const [entry] = pda(registrant.publicKey, 0);
+    let errMessage = "";
+    try {
+      await program.methods
+        .register(0, validPayload())
+        .accounts({
+          registrant: registrant.publicKey,
+          entry,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([registrant])
+        .rpc();
+    } catch (err: any) {
+      errMessage = err?.error?.errorMessage ?? err?.message ?? "";
+    }
+    expect(errMessage).to.match(/scheme_id must be non-zero/i);
+  });
+
+  it("register: version != 0x01 fails with InvalidVersion", async () => {
+    const registrant = await freshFunded();
+    const [entry] = pda(registrant.publicKey, 1);
+    const badPayload = { ...validPayload(), version: 2 };
+    let errMessage = "";
+    try {
+      await program.methods
+        .register(1, badPayload)
+        .accounts({
+          registrant: registrant.publicKey,
+          entry,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([registrant])
+        .rpc();
+    } catch (err: any) {
+      errMessage = err?.error?.errorMessage ?? err?.message ?? "";
+    }
+    expect(errMessage).to.match(/only meta-address version 0x01/i);
+  });
+
+  it("register: version = 0 fails with InvalidVersion", async () => {
+    const registrant = await freshFunded();
+    const [entry] = pda(registrant.publicKey, 1);
+    const badPayload = { ...validPayload(), version: 0 };
+    let errMessage = "";
+    try {
+      await program.methods
+        .register(1, badPayload)
+        .accounts({
+          registrant: registrant.publicKey,
+          entry,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([registrant])
+        .rpc();
+    } catch (err: any) {
+      errMessage = err?.error?.errorMessage ?? err?.message ?? "";
+    }
+    expect(errMessage).to.match(/only meta-address version 0x01/i);
+  });
+
+  it("register: flags != 0 fails with InvalidFlags", async () => {
+    const registrant = await freshFunded();
+    const [entry] = pda(registrant.publicKey, 1);
+    const badPayload = { ...validPayload(), flags: 1 };
+    let errMessage = "";
+    try {
+      await program.methods
+        .register(1, badPayload)
+        .accounts({
+          registrant: registrant.publicKey,
+          entry,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([registrant])
+        .rpc();
+    } catch (err: any) {
+      errMessage = err?.error?.errorMessage ?? err?.message ?? "";
+    }
+    expect(errMessage).to.match(/flags must be 0x00/i);
+  });
 });

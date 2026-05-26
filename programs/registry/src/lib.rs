@@ -11,6 +11,10 @@ pub mod umbra_registry {
         scheme_id: u16,
         payload: MetaAddressPayload,
     ) -> Result<()> {
+        require!(scheme_id != 0, RegistryError::InvalidSchemeId);
+        require!(payload.version == 1, RegistryError::InvalidVersion);
+        require!(payload.flags == 0, RegistryError::InvalidFlags);
+
         let entry = &mut ctx.accounts.entry;
         entry.registrant = ctx.accounts.registrant.key();
         entry.scheme_id = scheme_id;
