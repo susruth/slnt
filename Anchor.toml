@@ -7,9 +7,11 @@ skip-lint = false
 
 [programs.localnet]
 pinboard = "SLNTiiEuVeeSCBeYC86i2sSf3j7GdXx5crHzhEQfidB"
+registry = "CFSsGrZaZz9ZsPayKWSRkLp6xd28HCWwXhpdQFMyupXC"
 
 [programs.devnet]
 pinboard = "SLNTiiEuVeeSCBeYC86i2sSf3j7GdXx5crHzhEQfidB"
+registry = "CFSsGrZaZz9ZsPayKWSRkLp6xd28HCWwXhpdQFMyupXC"
 
 [registry]
 url = "https://api.apr.dev"

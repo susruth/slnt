@@ -1,0 +1,20 @@
+[package]
+name = "registry"
+version = "0.1.0"
+description = "Umbra Registry: maps Solana pubkeys to Umbra meta-addresses (used by the Umbra stealth-payment protocol)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "registry"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = "0.31.1"
