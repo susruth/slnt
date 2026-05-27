@@ -1,8 +1,8 @@
 //! Helpers for the Umbra registry program.
 //!
-//! Provides PDA derivation matching the on-chain seeds and a borsh
-//! decoder for the `MetaAddressEntry` account. RPC fetching lives in
-//! `fetch_meta_address` (added in the next task).
+//! Provides PDA derivation matching the on-chain seeds, a borsh
+//! decoder for the `MetaAddressEntry` account, and (behind the `rpc`
+//! feature) an async `fetch_meta_address` helper.
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_sdk::pubkey::Pubkey;
