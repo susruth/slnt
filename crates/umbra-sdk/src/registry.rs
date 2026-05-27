@@ -68,6 +68,33 @@ pub fn try_parse_meta_address_entry(
     Ok(Some(entry))
 }
 
+/// Fetch and decode a registered meta-address.
+///
+/// Returns `Ok(None)` if no entry exists at the derived PDA. Returns
+/// `Err` on RPC failure or malformed account data.
+#[cfg(feature = "rpc")]
+pub async fn fetch_meta_address(
+    rpc: &solana_client::nonblocking::rpc_client::RpcClient,
+    program_id: &Pubkey,
+    registrant: &Pubkey,
+    scheme_id: u16,
+) -> Result<Option<MetaAddressEntry>, String> {
+    let (pda, _) = registry_pda(program_id, registrant, scheme_id);
+    let account = match rpc.get_account(&pda).await {
+        Ok(a) => a,
+        Err(e) => {
+            // solana-client returns a structured error for "account not
+            // found"; distinguish it from real RPC failures.
+            let msg = e.to_string();
+            if msg.contains("AccountNotFound") {
+                return Ok(None);
+            }
+            return Err(format!("get_account: {msg}"));
+        }
+    };
+    try_parse_meta_address_entry(&account.data)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

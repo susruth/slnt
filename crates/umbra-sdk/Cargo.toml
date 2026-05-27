@@ -9,6 +9,10 @@ license = "Apache-2.0"
 name = "umbra_sdk"
 path = "src/lib.rs"
 
+[features]
+default = []
+rpc = ["dep:solana-client"]
+
 [dependencies]
 curve25519-dalek = { version = "4.1", features = ["digest"] }
 ed25519-dalek = { version = "2.1", features = ["rand_core"] }
@@ -21,6 +25,7 @@ solana-sdk = "2.3"
 rand_core = "0.6"
 thiserror = "1"
 base64 = "0.22"
+solana-client = { version = "2.3", optional = true }
 
 [dev-dependencies]
 rand_chacha = "0.3"
