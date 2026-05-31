@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the pinboard program, its IDL, and its TS types.
+# Build the on-chain programs, their IDLs, and their TS types.
 #
 # Why this script exists: as of Solana CLI 2.3.0, the bundled
 # `cargo-build-sbf` defaults to platform-tools v1.48 (cargo 1.84.0), which
@@ -17,9 +17,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PROGRAM=pinboard
 TOOLS_VERSION=v1.54
 
 anchor build --no-idl -- --tools-version "$TOOLS_VERSION"
-anchor idl build -p "$PROGRAM" -o "target/idl/${PROGRAM}.json"
-anchor idl type "target/idl/${PROGRAM}.json" -o "target/types/${PROGRAM}.ts"
+
+for PROGRAM in pinboard registry; do
+  anchor idl build -p "$PROGRAM" -o "target/idl/${PROGRAM}.json"
+  anchor idl type "target/idl/${PROGRAM}.json" -o "target/types/${PROGRAM}.ts"
+done

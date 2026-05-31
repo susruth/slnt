@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# End-to-end Umbra stealth-payment lifecycle demo.
+# End-to-end Slnt stealth-payment lifecycle demo.
 #
 # Starts a fresh solana-test-validator with the pinboard program loaded
-# at G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P, runs the
+# at SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2, runs the
 # `lifecycle` example, then tears down.
 
 set -euo pipefail
@@ -10,7 +10,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PROGRAM_ID="G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P"
+PROGRAM_ID="SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2"
 PROGRAM_SO="target/deploy/pinboard.so"
 
 # 1. Ensure pinboard is built.
@@ -29,7 +29,7 @@ solana-test-validator \
   --bpf-program "$PROGRAM_ID" "$PROGRAM_SO" \
   --reset \
   --quiet \
-  > /tmp/umbra-lifecycle-validator.log 2>&1 &
+  > /tmp/slnt-lifecycle-validator.log 2>&1 &
 VALIDATOR_PID=$!
 trap 'kill "$VALIDATOR_PID" 2>/dev/null || true; rm -rf test-ledger 2>/dev/null || true' EXIT
 
@@ -42,7 +42,7 @@ for i in {1..120}; do
   fi
   if [[ $i -eq 120 ]]; then
     echo "Validator did not become ready in 60s. Last log lines:"
-    tail -20 /tmp/umbra-lifecycle-validator.log
+    tail -20 /tmp/slnt-lifecycle-validator.log
     exit 1
   fi
   sleep 0.5
@@ -51,7 +51,7 @@ done
 # 5. Run the lifecycle.
 echo
 cargo run --release \
-  --manifest-path crates/umbra-sdk/Cargo.toml \
+  --manifest-path crates/slnt-sdk/Cargo.toml \
   --example lifecycle
 
 # 6. Cleanup happens via the EXIT trap.

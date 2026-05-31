@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible non-security bug.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. If this affects funds, key material, or unlinkability, stop here and follow SECURITY.md instead.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - pinboard program
+        - registry program
+        - Rust SDK
+        - TypeScript SDK
+        - CLI
+        - announcer service
+        - indexer service
+        - docs / sRFC
+        - tests / tooling
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run ...
+        2. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit SHA, OS, Rust, Solana CLI, Anchor, Node, package versions.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      render: text

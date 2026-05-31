@@ -1,0 +1,39 @@
+name: sRFC / protocol change
+description: Start a protocol-change issue after discussion exists.
+title: "srfc: "
+labels:
+  - srfc
+  - protocol
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Protocol changes should begin as a GitHub Discussion. Use this template once there is a concrete proposal to track.
+  - type: input
+    id: discussion
+    attributes:
+      label: Discussion link
+      description: Link to the GitHub Discussion where this was proposed.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed protocol change
+      description: Describe the exact sRFC behavior or bytes that change.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: Which wallets, SDKs, deployments, or stored identities are affected?
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security / privacy analysis
+      description: Include fund-safety, key-recovery, unlinkability, and DoS implications.
+    validations:
+      required: true

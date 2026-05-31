@@ -2,7 +2,7 @@
 
 A minimal, permissionless on-chain primitive for publishing tagged notes on
 Solana. Anyone can post; anyone can read; the program holds no state. The
-[Umbra](../../docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md)
+[Slnt](../../docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md)
 stealth-payment protocol is the first consumer, but pinboard is intended as
 a generic substrate that any protocol can adopt or fork.
 
@@ -27,7 +27,7 @@ no admin keys.
 | Arg | Type | Notes |
 |---|---|---|
 | `scheme_id` | `u16` | Cryptographic-suite identifier. The program does not validate this; consuming protocols define their own scheme registries. |
-| `ephemeral_pub` | `[u8; 32]` | The sender's ephemeral public key for the protocol (e.g., X25519 R for Umbra v1). |
+| `ephemeral_pub` | `[u8; 32]` | The sender's ephemeral public key for the protocol (e.g., X25519 R for Slnt v1). |
 | `view_tag` | `u8` | Short recognition hint, recipient-derived. |
 | `metadata` | `Vec<u8>` | Opaque bytes, max 64. Consuming protocols define semantics; the program treats it as a blob. |
 
@@ -73,8 +73,9 @@ N bytes  metadata (N = metadata length, 0..=64)
 
 Total event size: 47–111 bytes.
 
-Anchor 0.31's new IDL spec camelCases the event name. Clients parsing
-events should match on the string `note`.
+Anchor 0.31's IDL spec may camelCase the event name for high-level decoders.
+Low-level clients parsing logs should match the 8-byte `event:Note`
+discriminator, not an event-name string.
 
 ## Adopting pinboard for your protocol
 
@@ -98,9 +99,11 @@ Use the workspace build script (from the repo root):
 
 It runs three steps:
 
-1. `anchor build --no-idl -- --tools-version v1.54` — compile the .so
-2. `anchor idl build -p pinboard -o target/idl/pinboard.json`
-3. `anchor idl type target/idl/pinboard.json -o target/types/pinboard.ts`
+1. `anchor build --no-idl -- --tools-version v1.54` — compile the workspace programs
+2. `anchor idl build -p <program> -o target/idl/<program>.json`
+3. `anchor idl type target/idl/<program>.json -o target/types/<program>.ts`
+
+The IDL/type steps run for both `pinboard` and `registry`.
 
 The `--tools-version v1.54` override is required because Solana CLI 2.3.0
 ships with platform-tools v1.48 (cargo 1.84.0), which predates Rust
@@ -110,8 +113,9 @@ Platform-tools v1.54 ships cargo 1.89, which supports edition2024.
 
 Outputs:
 - `target/deploy/pinboard.so` — the program binary
-- `target/idl/pinboard.json` — the IDL consumed by clients
-- `target/types/pinboard.ts` — TypeScript types for the IDL
+- `target/deploy/registry.so` — the sibling registry program binary
+- `target/idl/{pinboard,registry}.json` — IDLs consumed by clients
+- `target/types/{pinboard,registry}.ts` — TypeScript types for the IDLs
 
 ## Test
 
@@ -126,29 +130,27 @@ TypeScript test suite. Twelve tests cover the spec's requirements for §6
 
 ## Deploy
 
-The program is intended to be deployed with **no upgrade authority**, so
-no party can alter the on-chain primitive after launch. After deploy:
+Devnet and testnet deployments are currently **upgradeable** while SLNT v1 is
+draft and unaudited. As soon as v1 is finalized and independently audited, the
+canonical v1 deployment is intended to have **no upgrade authority**, so no
+party can alter the on-chain primitive after that point. See the repo-level
+[`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) for the current deployments,
+authorities, and signatures.
 
 ```bash
 # Deploy to devnet (preserves upgrade authority — for testing only)
 anchor deploy --provider.cluster devnet
 
-# Deploy to mainnet and immediately disable upgrades
+# Deploy canonical v1 and disable upgrades after v1 finalization + audit
 anchor deploy --provider.cluster mainnet
-solana program set-upgrade-authority \
-  <PROGRAM_ID> \
-  --new-upgrade-authority none \
-  --skip-new-upgrade-authority-signer-check
+solana program set-upgrade-authority <PROGRAM_ID> --final --url mainnet-beta
 ```
-
-The canonical mainnet program ID will be published in this README once a
-final deployment is made. A vanity prefix is planned for the production
-deploy.
 
 ## Program ID
 
-| Network | Program ID |
+| Network | Program ID | Upgrade authority |
 |---|---|
-| Localnet (dev) | `G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P` (keypair at `target/deploy/pinboard-keypair.json`) |
-| Devnet | TBD — populated on first devnet deployment |
-| Mainnet | TBD — vanity-grinded prefix, populated on first mainnet deployment |
+| Localnet (dev) | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (keypair at `target/deploy/pinboard-keypair.json`) | local deployer |
+| Devnet | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` | `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` |
+| Testnet | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` | `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` |
+| Mainnet | TBD — final canonical deployment | none, after v1 finalization + audit |

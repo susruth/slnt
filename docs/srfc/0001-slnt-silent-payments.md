@@ -4,13 +4,14 @@
 |---|---|
 | **sRFC** | 0042 |
 | **Title** | SLNT: Silent Payments for Solana |
-| **Authors** | susruth (<susruth@susruth.com>) |
+| **Authors** | susruth (<research@susruth.com>) |
 | **Status** | Draft |
 | **Type** | Standards Track |
 | **Category** | Interface / Application |
 | **Created** | 2026-05-31 |
 | **Requires** | Ed25519, X25519, SHA-256, HKDF-SHA256, bech32m |
-| **Reference deployments** | `pinboard`: `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` · `registry`: `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (vanity prefixes: `SLNTP…` = **P**inboard, `SLNTR…` = **R**egistry) |
+| **Implementation** | [`github.com/susruth/slnt`](https://github.com/susruth/slnt) |
+| **Reference program IDs** | `pinboard`: `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` · `registry`: `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (candidate vanity prefixes: `SLNTP…` = **P**inboard, `SLNTR…` = **R**egistry) |
 
 ---
 
@@ -42,8 +43,9 @@
   - [8.3 Deanonymization risks and required mitigations](#83-deanonymization-risks-and-required-mitigations)
   - [8.4 Spam / DoS](#84-spam--dos)
   - [8.5 Key-derivation integrity](#85-key-derivation-integrity)
+  - [8.6 Audit status](#86-audit-status)
 - [9. Reference Implementation](#9-reference-implementation)
-- [10. Internal design references](#10-internal-design-references)
+- [10. Component design documents](#10-component-design-documents)
 - [11. Future work](#11-future-work)
 - [12. Open Questions](#12-open-questions)
 - [13. Out of scope (v1)](#13-out-of-scope-v1)
@@ -60,7 +62,7 @@ SLNT defines a **silent-payment** (stealth-address) standard for Solana. A recip
 - no observer without the recipient's scan key can link a stealth address to the meta-address, nor link two payments to the same meta-address; and
 - in the default (decoupled) mode, the payment transaction is **indistinguishable** from an ordinary transfer to a fresh address.
 
-SLNT is the Solana analog of Bitcoin Silent Payments (BIP-352) and Ethereum Stealth Addresses (ERC-5564 / ERC-6538), re-grounded on Solana's account model, Ed25519/X25519 key types, and rent/relayer economics. It specifies two permissionless, immutable on-chain programs — an **announcement** program (`pinboard`) and a **meta-address registry** (`registry`) — plus the off-chain cryptography that wallets implement.
+SLNT is the Solana analog of Bitcoin Silent Payments (BIP-352) and Ethereum Stealth Addresses (ERC-5564 / ERC-6538), re-grounded on Solana's account model, Ed25519/X25519 key types, and rent/relayer economics. It specifies two permissionless on-chain programs intended to become immutable as soon as SLNT v1 is finalized and independently audited — an **announcement** program (`pinboard`) and a **meta-address registry** (`registry`) — plus the off-chain cryptography that wallets implement.
 
 This document is normative and self-contained: a conforming SLNT v1 implementation can be built from this sRFC alone.
 
@@ -103,7 +105,7 @@ SLNT is a deliberate synthesis. The following table maps each SLNT component to 
 | Meta-address publishing | Silent payment address (`sp1…`) | Stealth meta-address (`st:eth:0x…`) | bech32m `slnt1…` |
 | Sender ephemeral material | Reuses tx **input** keys (no extra data) | Explicit `ephemeralPubKey` | Explicit X25519 `R` |
 | On-chain announcement | None (recipient scans all txs) | `Announcer` event (ERC-5564) | `pinboard` event program |
-| View tag (fast scan filter) | — | 1 byte (first byte of `metadata`) | 1 byte |
+| View tag (fast scan filter) | — | 1 byte (`metadata[0]` in the ERC-5564 announcement) | 1 byte |
 | Per-counterparty labels | Yes (label tweaks) | — | Yes (BIP-352-style) |
 | Meta-address registry | — | `ERC-6538` registry contract | `registry` PDA program |
 | Transfer ↔ announcement coupling | Implicitly silent | Coupled (announcement = the marker) | **Decoupled** (silent) by default |
@@ -151,7 +153,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **
 
 **Group constants.** `G_ed` = Ed25519 base point; `G_x` = Curve25519 (Montgomery) base point; `ℓ` = Ed25519 group order = `2^252 + 27742317777372353535851937790883648493`.
 
-**Domain-separation tags** (ASCII), included length-prefixed in every hash input as `H(len(tag) || tag || …)` to make inputs unambiguous:
+**Domain-separation tags** (ASCII), included length-prefixed in every hash input as `H(len(tag) || tag || …)` to make inputs unambiguous. `len(tag)` is encoded as one unsigned byte; all v1 tags are shorter than 256 bytes.
 
 - `slnt-v1-derive` — stealth-key derivation (HKDF salt for both methods, [§5.2.1](#521-key-derivation))
 - `slnt-v1-tweak` — stealth-address tweak and view tag
@@ -244,10 +246,10 @@ A meta-address is bech32m-encoded with HRP `slnt` over the payload:
 | `version` | 1 byte | Meta-address encoding version. `0x01` for v1. |
 | `B_spend` | 32 bytes | Ed25519 spend public key (compressed). |
 | `B_scan` | 32 bytes | X25519 scan public key. |
-| `label_index` | unsigned LEB128, 1–5 bytes | `0` = unlabeled; `1+` = labelled ([§5.2.3](#523-labels-bip-352-style)). |
+| `label_index` | canonical unsigned LEB128, 1–5 bytes | `0` = unlabeled; `1+` = labelled ([§5.2.3](#523-labels-bip-352-style)). |
 | `flags` | 1 byte | Reserved. `0x00` in v1. |
 
-Total payload 67–71 bytes; encoded length ~120–126 characters (`slnt1…`). `version` is **independent** of the announcement `scheme_id` ([§5.5](#55-announcement-layer--the-pinboard-program)): the former describes the meta-address bytes, the latter the cryptographic suite. Implementations **MUST** reject meta-addresses with `version != 0x01` in v1.
+Total payload 67–71 bytes; encoded length ~120–126 characters (`slnt1…`). `version` is **independent** of the announcement `scheme_id` ([§5.5](#55-announcement-layer--the-pinboard-program)): the former describes the meta-address bytes, the latter the cryptographic suite. Implementations **MUST** reject meta-addresses with `version != 0x01` or `flags != 0x00` in v1.
 
 #### 5.2.3 Labels (BIP-352 style)
 
@@ -257,23 +259,24 @@ Labels let a recipient publish multiple meta-addresses from one scan key and lat
 m_i = SC25519_reduce(
         HKDF-SHA256(salt = "slnt-v1-label",
                     ikm  = b_scan_raw,
-                    info = "label-" || varint(i),
+                    info = "label-" || leb128(i),
                     length = 32))
 
 B_spend_i = B_spend + m_i · G_ed
 ```
 
-The meta-address for label `i` encodes `B_spend_i` in the `B_spend` field and `label_index = i`. `label_index = 0` is the unlabeled default (`B_spend_0 = B_spend`, no tweak). Senders treat the encoded spend key as opaque; the sender flow is identical regardless of label index.
+The meta-address for label `i` encodes `B_spend_i` in the `B_spend` field and `label_index = i`. `leb128(i)` and encoded `label_index` values **MUST** use the canonical minimal unsigned LEB128 representation. `label_index = 0` is the unlabeled default (`B_spend_0 = B_spend`, no tweak). Senders treat the encoded spend key as opaque; the sender flow is identical regardless of label index.
 
 ### 5.3 Stealth address derivation — sender
 
-Given a meta-address `(B_spend_effective, B_scan, label_index)` — where `B_spend_effective` already incorporates any label tweak and is treated as opaque by the sender:
+Given a meta-address `(B_spend_effective, B_scan, label_index)` — where `B_spend_effective` already incorporates any label tweak and is treated as opaque by the sender — the sender **MUST** first validate `version == 0x01`, `flags == 0x00`, and that `B_spend_effective` decompresses to a spendable Ed25519 point in the prime-order subgroup (not identity, not small-order, and with no torsion component):
 
 ```
 r = X25519_clamp(secure_random_32_bytes())
 R = r · G_x                                            // ephemeral pubkey (32 bytes)
 
 S = X25519(r, B_scan)                                  // shared secret (32 bytes)
+if S == 0^32: abort                                    // invalid low-order scan key
 
 view_tag = SHA-256(len("slnt-v1-tweak") || "slnt-v1-tweak" || S)[0]
 
@@ -284,7 +287,7 @@ P_stealth = B_spend_effective + t · G_ed               // Ed25519 point
 stealth_address = base58(compress(P_stealth))          // Solana address
 ```
 
-The sender then transfers the asset to `stealth_address` ([§5.6](#56-meta-address-registry--the-registry-program)) and publishes the announcement `(scheme_id = 0x0001, R, view_tag, metadata)` ([§5.5](#55-announcement-layer--the-pinboard-program)). The `metadata` field is opaque to the protocol, **MUST** be ≤ 64 bytes, and **MAY** carry an implementation-defined encrypted memo keyed by `S` (not standardized in v1).
+The all-zero shared-secret check follows X25519 best practice: it catches low-order or otherwise invalid scan public keys before funds are transferred to an unrecoverable address. The sender then transfers the asset to `stealth_address` ([§5.7](#57-sender-transaction-flows)) and publishes the announcement `(scheme_id = 0x0001, R, view_tag, metadata)` ([§5.5](#55-announcement-layer--the-pinboard-program)). The `metadata` field is opaque to the protocol, **MUST** be ≤ 64 bytes, and **MAY** carry an implementation-defined encrypted memo keyed by `S` (not standardized in v1).
 
 ### 5.4 Stealth address derivation — recipient
 
@@ -292,6 +295,7 @@ For each observed announcement `(R, view_tag, metadata)`:
 
 ```
 S_candidate = X25519(b_scan, R)
+if S_candidate == 0^32: continue                       // invalid low-order R
 
 vt = SHA-256(len("slnt-v1-tweak") || "slnt-v1-tweak" || S_candidate)[0]
 if vt != view_tag: continue                            // ~255/256 rejected here
@@ -308,7 +312,7 @@ for addr in [P_candidate, P_candidate_1, …]:
         record_payment(addr, label_index_if_matched, R)
 ```
 
-**Spend-scalar reconstruction** for sweeping ([§5.7](#57-sender-transaction-flows)):
+**Spend-scalar reconstruction** for sweeping ([§5.9](#59-recipient-sweep)):
 
 ```
 p_stealth = (b_spend + t)       mod ℓ      // unlabeled
@@ -317,13 +321,13 @@ p_stealth = (b_spend + m_i + t) mod ℓ      // label i
 
 `p_stealth · G_ed` **MUST** equal the recorded `P_stealth` (sanity check). `p_stealth` is the Ed25519 private key of the stealth address.
 
-The view tag bounds scan cost: ~1/256 announcements survive the filter, after which one scalar-mult per known label index is performed. Implementations **SHOULD** treat the view-tag filter as the primary defense against scan-cost DoS ([§8.4](#84-spam--dos)).
+The view tag bounds scan cost: ~1/256 announcements survive the filter, after which one scalar-mult per known label index is performed. Implementations **MUST** discard all-zero X25519 shared secrets before comparing the view tag; otherwise a single low-order `R` can be crafted to pass the filter for every recipient. Implementations **SHOULD** treat the view-tag filter as the primary defense against scan-cost DoS ([§8.4](#84-spam--dos)).
 
 ### 5.5 Announcement layer — the `pinboard` program
 
 SLNT announcements are published on **pinboard**, a permissionless, stateless Solana program that emits opaque tagged notes as Anchor events. Pinboard is generic (not SLNT-specific) and is SLNT's first consumer. It is the Solana analog of the ERC-5564 `Announcer`.
 
-**Reference deployment:** `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (immutable, no upgrade authority). The vanity prefix `SLNTP…` — **P** for **p**inboard — makes the canonical program recognizable on sight.
+**Reference program ID:** `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2`. The vanity prefix `SLNTP…` — **P** for **p**inboard — is the candidate canonical address; the canonical v1 deployment is intended to renounce upgrade authority as soon as v1 is finalized and independently audited. Final mainnet deployment and renounce procedure are tracked in [§12](#12-open-questions).
 
 #### 5.5.1 Instructions
 
@@ -364,13 +368,13 @@ Note
   metadata      : metadata_len bytes
 ```
 
-Total 47–111 bytes. The Anchor 0.31 IDL camelCases the event name; log parsers **SHOULD** match the string `note`. The fixed-header + variable-tail layout is intentionally Merkle-tree-friendly for a future compressed-account migration ([§11](#11-future-work)) without changing the bytes scanners parse.
+Total 47–111 bytes. Log parsers **MUST** match the 8-byte Anchor event discriminator for `Note`, not event-name strings or IDL casing. The fixed-header + variable-tail layout is intentionally Merkle-tree-friendly for a future compressed-account migration ([§11](#11-future-work)) without changing the bytes scanners parse.
 
 ### 5.6 Meta-address registry — the `registry` program
 
 The **registry** maps a main Solana wallet pubkey to its SLNT meta-address, closing the discovery gap. It is the Solana analog of ERC-6538. It is **OPTIONAL**: senders may always share meta-addresses off-chain (QR, profile, DM). It is deployed independently of pinboard and shares no code or state.
 
-**Reference deployment:** `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (immutable, no upgrade authority, no admin). The vanity prefix `SLNTR…` — **R** for **r**egistry — makes the canonical program recognizable on sight.
+**Reference program ID:** `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2`. The vanity prefix `SLNTR…` — **R** for **r**egistry — is the candidate canonical address; the canonical v1 deployment is intended to renounce upgrade authority as soon as v1 is finalized and independently audited. Final mainnet deployment and renounce procedure are tracked in [§12](#12-open-questions). The registry has no admin instruction path.
 
 #### 5.6.1 PDA and account
 
@@ -409,13 +413,13 @@ pub struct MetaAddressPayload { pub version: u8, pub b_spend: [u8;32], pub b_sca
 
 Validation, applied to `register` and `update`:
 
-| Rule | Error |
+| Required condition | Error if false |
 |---|---|
 | `scheme_id != 0` | `InvalidSchemeId` |
 | `version == 0x01` | `InvalidVersion` |
-| `flags == 0` | `InvalidFlags` |
+| `flags == 0x00` | `InvalidFlags` |
 
-The registry **MUST** accept only unlabeled meta-addresses (`label_index` is not on the wire; the payload has no such field). Publishing a labelled meta-address would leak relationship metadata and is therefore impossible by construction. The registry **MUST NOT** be required to validate that `b_spend` / `b_scan` are valid curve points (garbage fails at sender derivation, never risks funds). Each instruction emits a corresponding event (`MetaAddressRegistered` / `MetaAddressUpdated` / `MetaAddressClosed`) so indexers can maintain a `(registrant, scheme_id) → entry` map without `getProgramAccounts`.
+The registry **MUST** accept only unlabeled meta-addresses (`label_index` is not on the wire; the payload has no such field). Publishing a labelled meta-address would leak relationship metadata and is therefore impossible by construction. The registry **MUST NOT** be required to validate that `b_spend` / `b_scan` are valid curve points; senders **MUST** perform the validation in [§5.3](#53-stealth-address-derivation--sender), so garbage fails before any transfer is built. Each instruction emits a corresponding event (`MetaAddressRegistered` / `MetaAddressUpdated` / `MetaAddressClosed`) so indexers can maintain a `(registrant, scheme_id) → entry` map without `getProgramAccounts`.
 
 Sender prelude (OPTIONAL): given a recipient wallet `A`, look up `(A, 0x0001)`; on hit, decode the meta-address and proceed with [§5.3](#53-stealth-address-derivation--sender); on miss, fall back to off-chain meta-address entry. The registry is an enhancement, never a hard dependency.
 
@@ -423,8 +427,8 @@ Sender prelude (OPTIONAL): given a recipient wallet `A`, look up `(A, 0x0001)`; 
 
 In v1 the sender **MUST** default to **decoupled mode** ([§5.8](#58-announcement-modes)): the on-chain transfer contains only the asset movement and any required account creation — no SLNT instruction — so it is indistinguishable from a normal transfer to a fresh address.
 
-- **SOL:** `SystemProgram::transfer { to: P_stealth, lamports: amount + rent_buffer }`, where `rent_buffer` is the rent-exempt minimum (890,880 lamports) so the fresh system account is valid.
-- **SPL token:** create the recipient ATA for `(P_stealth, mint)` (sender pays ATA rent ≈ 2,039,280 lamports), then `spl_token::transfer` into it. The mint is necessarily visible on-chain; only the recipient *identity* is hidden, not the asset type.
+- **SOL:** `SystemProgram::transfer { to: P_stealth, lamports: amount + rent_buffer }`, where `rent_buffer` is at least the cluster's current rent-exempt minimum for a zero-data system account. Networked wallets **SHOULD** query this value from the cluster instead of relying on a stale constant. Implementations **MUST** checked-add `amount + rent_buffer` and fail rather than wrap on overflow.
+- **SPL token:** create the recipient ATA for `(P_stealth, mint)` (sender pays the current ATA rent-exempt minimum), then `spl_token::transfer_checked` into it. The mint is necessarily visible on-chain; only the recipient *identity* is hidden, not the asset type.
 - **NFT (Metaplex / Token-2022):** same shape with the NFT mint, plus program-mandated extra accounts (token records, rule sets) for pNFTs and transfer-hook execution for Token-2022. Implementations **MUST** construct the full account set via the relevant SDK and **SHOULD** warn that a publicly-tied NFT can deanonymize the sender ([§8.3](#83-deanonymization-risks-and-required-mitigations)).
 
 ### 5.8 Announcement modes
@@ -457,7 +461,7 @@ GET  /announce/status/{batch_id}  ->  { status: pending|confirmed|failed, tx_sig
 
 ### 5.9 Recipient sweep
 
-A stealth address holds value but only the rent-exempt minimum in SOL, so it cannot pay its own fees. The recipient uses Solana's fee-payer separation: a **relayer** signs as fee payer and is compensated from the swept value.
+The recipient uses Solana's fee-payer separation: a **relayer** signs as fee payer and is compensated from the swept value. This avoids funding stealth accounts for fees in a way that creates new linkage, and it covers SPL/NFT receipts whose stealth owner may hold no usable SOL beyond rent.
 
 - **SOL sweep:** two `SystemProgram::transfer`s from the stealth account — one paying the relayer (`relayer_margin + rent_reserve`), one paying the recipient destination (`balance − relayer_take`). The account reaches zero and is reclaimed by the runtime.
 - **SPL sweep:** transfer the token to the destination ATA, pay the relayer in-kind from the same token, then `CloseAccount` the stealth ATA. Relayer compensation is paid in the swept token; the relayer fronts the SOL fee.
@@ -468,7 +472,7 @@ A stealth address holds value but only the rent-exempt minimum in SOL, so it can
 
 ### 5.10 Discovery and scanning
 
-- **Self-scan via logs (baseline, REQUIRED).** Wallets **MUST** support scanning by subscribing to pinboard program logs (`logsSubscribe`) and backfilling via `getSignaturesForAddress` + `getTransaction`. Default RPCs prune logs within hours, so wallets **SHOULD** offer an alternative for recipients offline beyond ~24 h.
+- **Self-scan via logs (baseline, REQUIRED).** Wallets **MUST** support scanning by subscribing to pinboard program logs (`logsSubscribe`) and backfilling via `getSignaturesForAddress` + `getTransaction`. RPC retention is provider-dependent and many public endpoints do not provide full historical logs, so wallets **SHOULD** offer an alternative for recipients offline beyond the provider's retention window.
 - **Indexer (OPTIONAL).** Any party **MAY** host an indexer that retains announcements and serves them over HTTP (`GET /announcements?since_slot&limit`). The indexer receives **no** scan keys; matching is recipient-local. Polling slot ranges leaks nothing about which announcements matched.
 - **View-key delegated scanning (OPTIONAL, opt-in).** A recipient **MAY** publish `b_scan_raw` (the pre-clamp scan material) to a trusted scanner that runs the ECDH + view-tag filter and returns only matches. Scan material is **view-only**: it cannot sign, cannot recover `b_spend`, and cannot spend. Implementations **MUST** warn that the scanner learns all incoming-payment metadata, and **SHOULD** discourage view-key delegation for high-stakes privacy.
 
@@ -541,7 +545,7 @@ Amounts and asset types are visible on-chain. Sender anonymity is **not** provid
 
 ### 8.4 Spam / DoS
 
-Pinboard is permissionless, so an attacker can post garbage to inflate scan work. The 1-byte view tag is the structural defense: each garbage note costs a scanner one X25519 ECDH (~30 µs) + one SHA-256. At ~5,000 lamports per announcement, 100M spam notes cost the attacker ~$100k for ~50 CPU-minutes of scan work per recipient — annoying, not crippling. v1 adds no further mitigation; future schemes **MAY** attach an anti-spam stamp (e.g., a small fixed burn per announcement) if attack patterns warrant.
+Pinboard is permissionless, so an attacker can post garbage to inflate scan work. The 1-byte view tag is the structural defense: each garbage note costs a scanner one X25519 ECDH (~30 µs) + one SHA-256. Scanners **MUST** drop all-zero X25519 shared secrets before view-tag comparison so low-order `R` values cannot force every recipient into the expensive post-filter path. At ~5,000 lamports per announcement, 100M spam notes cost the attacker roughly 500 SOL before RPC/provider costs; the dollar value varies with SOL price. This is annoying, not crippling. v1 adds no further mitigation; future schemes **MAY** attach an anti-spam stamp (e.g., a small fixed burn per announcement) if attack patterns warrant.
 
 ### 8.5 Key-derivation integrity
 
@@ -549,31 +553,55 @@ Under **Method 2**, stealth identity recoverability depends entirely on determin
 
 Under **Method 1**, recoverability depends on the BIP-39 seed (as for all wallet keys) and on the wallet recording the derivation method and path. The SLNT scan node is a hardened derivation, so disclosing it (e.g., to a delegated scanner as `b_scan_raw`, [§5.10](#510-discovery-and-scanning)) cannot be used to climb back to the parent seed or to the user's spending keys. Because the two methods produce different identities, a user who funds a Method-1 identity and later only has access to a Method-2 integration (or vice versa) will not see those funds; wallets **SHOULD** make the active method explicit and support exporting/importing it.
 
+### 8.6 Audit status
+
+This draft and reference implementation have not yet undergone an independent cryptographic or implementation audit. Implementers **SHOULD** treat SLNT v1 as experimental until independent review, public test vectors, and at least one interoperable second implementation exist. Wallets **MUST** surface this status before enabling mainnet value flows.
+
 ---
 
 ## 9. Reference Implementation
 
-The reference implementation lives in this repository and is **not** part of the normative standard; it bootstraps the ecosystem:
+The reference implementation lives in the implementation repository, [`github.com/susruth/slnt`](https://github.com/susruth/slnt), and is **not** part of the normative standard; it bootstraps the ecosystem. Each component has a service-level design document, indexed in [§10](#10-component-design-documents).
 
-- **`programs/pinboard`** — the on-chain announcement program (`post`, `post_batch`, `Note` event). Deployed at `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2`.
-- **`programs/registry`** — the meta-address registry (`register`, `update`, `close`, events). Deployed at `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2`.
-- **`crates/slnt-sdk`** — Rust SDK: canonical-message key derivation, bech32m meta-address encode/decode with labels, sender stealth-address derivation, recipient scan + spend-scalar reconstruction, stealth signing, and registry PDA / fetch helpers.
+Conformance vectors live in [`test-vectors.json`](https://github.com/susruth/slnt/blob/main/test-vectors.json). They cover the v1 key-derivation methods, labels, sender derivation, recipient scanning, pinboard event bytes, registry wire bytes, and invalid hardening cases.
 
-Planned: a TypeScript wallet SDK, a reference indexer ([§5.10](#510-discovery-and-scanning)), a reference announcement service ([§5.8.4](#584-announcement-service-http-protocol)), and a `slnt` CLI.
+Devnet and testnet reference deployments are live at the program IDs below and remain upgradeable while v1 is draft and unaudited. The canonical v1 deployment is intended to renounce upgrade authority as soon as v1 is finalized and independently audited; final mainnet deployment and renounce procedure remain open questions ([§12](#12-open-questions)).
+
+On-chain programs:
+
+- **[`programs/pinboard`](https://github.com/susruth/slnt/tree/main/programs/pinboard)** — the announcement program (`post`, `post_batch`, `Note` event). Candidate reference program ID: `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2`.
+- **[`programs/registry`](https://github.com/susruth/slnt/tree/main/programs/registry)** — the meta-address registry (`register`, `update`, `close`, events). Candidate reference program ID: `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2`.
+
+Client libraries:
+
+- **[`crates/slnt-sdk`](https://github.com/susruth/slnt/tree/main/crates/slnt-sdk)** — the canonical Rust SDK and cryptographic reference: both key-derivation methods, bech32m meta-address encode/decode with labels, sender stealth-address derivation, recipient scan + spend-scalar reconstruction, scalar-mode stealth signing, SOL/SPL/NFT transfer and sweep builders, the announcement layer, and — behind the `net` feature — the announcer HTTP client and `logsSubscribe` scanner.
+- **[`clients/typescript`](https://github.com/susruth/slnt/tree/main/clients/typescript)** (`@slnt/sdk`) — TypeScript wallet SDK, byte-compatible with the Rust SDK.
+- **[`crates/slnt-cli`](https://github.com/susruth/slnt/tree/main/crates/slnt-cli)** (`slnt`) — offline CLI for key derivation, meta-address encode/decode, and sender derivation.
+
+Off-chain services:
+
+- **[`crates/slnt-announcer`](https://github.com/susruth/slnt/tree/main/crates/slnt-announcer)** — the **announcer**: accepts announcement tuples over HTTP and publishes them to `pinboard` in service-paid `post_batch` transactions, implementing the announcement-service protocol ([§5.8.4](#584-announcement-service-http-protocol)).
+- **[`crates/slnt-indexer`](https://github.com/susruth/slnt/tree/main/crates/slnt-indexer)** — a reference indexer ([§5.10](#510-discovery-and-scanning)) that retains announcements and serves them by slot range over HTTP.
 
 Conformance: an implementation is SLNT-v1-conforming if it produces and consumes meta-addresses, announcements, and stealth addresses byte-compatible with [§5](#5-specification), processes `scheme_id = 0x0001` / `version = 0x01`, supports self-scan via logs ([§5.10](#510-discovery-and-scanning)), enforces the close-to-relayer rule ([§5.9](#59-recipient-sweep)), and implements at least one key-derivation method ([§5.2.1](#521-key-derivation)) — using Method 2 when it has no seed access, and enforcing the deterministic-signing requirement whenever Method 2 is offered.
 
 ---
 
-## 10. Internal design references
+## 10. Component design documents
 
-This sRFC consolidates the following internal design documents, which retain the deepest byte-level detail, derivations, and cost analyses:
+This sRFC is the **normative** standard: a conforming implementation can be built from §5 alone. The reference implementation is decomposed into the components below, each with a non-normative **service-level design document** under [`docs/srfc/design/`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/README.md). Those documents carry the deepest implementation detail — byte-level layouts, cryptographic derivations, cost analyses, error tables, and operational notes — for an engineer reimplementing a component from scratch. Where a design document and this sRFC disagree on a wire/byte format, **this sRFC governs**.
 
-- `docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md` — core protocol.
-- `docs/superpowers/specs/2026-05-26-umbra-registry-program-design.md` — registry program.
-- `docs/superpowers/specs/2026-05-20-umbra-sdk-rust-design.md` — SDK shape.
+| Component | Design document | Kind | Primary sections |
+|---|---|---|---|
+| `pinboard` program | [`design/pinboard-program.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/pinboard-program.md) | On-chain (immutable after v1 finalization and audit) | §5.5 |
+| `registry` program | [`design/registry-program.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/registry-program.md) | On-chain (immutable after v1 finalization and audit, optional) | §5.6 |
+| `slnt-sdk` (Rust) | [`design/rust-sdk.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/rust-sdk.md) | Client library — **cryptographic reference** | §5.2–§5.10 |
+| `@slnt/sdk` (TypeScript) | [`design/typescript-sdk.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/typescript-sdk.md) | Client library — byte-compatible with the Rust SDK | §5.2–§5.4, §5.10 |
+| `slnt` CLI | [`design/cli.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/cli.md) | Offline command-line tool | §9 |
+| `slnt-announcer` | [`design/announcer.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/announcer.md) | Off-chain HTTP service | §5.8 |
+| `slnt-indexer` | [`design/indexer-service.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/indexer-service.md) | Off-chain HTTP service | §5.10 |
 
-(Filenames retain their original date-stamped slugs.)
+See [`design/README.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/README.md) for an index and suggested reading order, and [`IMPLEMENTATION-STATUS.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/IMPLEMENTATION-STATUS.md) for the conformance/coverage tracker.
 
 ---
 
@@ -585,13 +613,15 @@ Cross-chain unified meta-addresses (new encoding `version`); post-quantum scheme
 
 ## 12. Open Questions
 
-1. **Canonical deploy authority.** Both programs are intended to be immutable (no upgrade authority). The reference deployments use vanity prefixes for on-sight recognition under the shared `SLNT` brand: `SLNTP…` for pinboard (**P**) and `SLNTR…` for registry (**R**). Final mainnet addresses and the renounce procedure are TBD.
+1. **Canonical deploy authority.** Both programs are intended to become immutable (no upgrade authority) as soon as SLNT v1 is finalized and independently audited. The candidate reference deployments use vanity prefixes for on-sight recognition under the shared `SLNT` brand: `SLNTP…` for pinboard (**P**) and `SLNTR…` for registry (**R**). Final mainnet addresses and the renounce procedure are TBD.
 2. **HRP registration.** The bech32m HRP `slnt` should be registered against SLIP-0173 to avoid collision.
 3. **Relayer discovery/pricing.** Whether v1.1 should standardize a relayer quote RPC.
 4. **Encrypted-metadata standard.** Whether to standardize a memo scheme keyed by `S` (`slnt-v1-memo`) in v1.1.
 5. **SIMD track.** Whether and when to promote this sRFC to a formal SIMD.
 6. **HD derivation path (Method 1).** The path is `m/0x534C4E54'/501'/account'/0'` (spend) and `…/1'` (scan), with purpose `0x534C4E54'` = ASCII "SLNT". This convention should be registered (e.g. against the common wallet derivation-path registries) so every SLNT-native wallet derives identically; a mismatch would be as user-hostile as the existing CLI-vs-wallet path gap.
 7. **Encoding the derivation method.** Whether to allocate a `flags` bit (currently reserved `0x00`, and validated as such by the registry, [§5.6.2](#562-instructions-and-validation)) to record which method/path produced a meta-address, enabling automated cross-wallet recovery and import. Deferred for v1 because it changes registry validation; today the method is wallet-local state, like a derivation path.
+8. **Conformance test vectors.** Stabilize and expand `test-vectors.json` before moving from draft to final, including any additional vectors requested by independent implementers.
+9. **Announcement-service proof shape.** Whether `payment_proof` in [§5.8.4](#584-announcement-service-http-protocol) should be standardized, omitted, or left service-defined for v1.
 
 ---
 
@@ -603,4 +633,4 @@ Amount privacy; asset-type privacy; sender anonymity; cross-chain meta-addresses
 
 ## Copyright
 
-This document is placed under Apache-2.0, consistent with the repository license.
+This document is placed under the MIT License, consistent with the [`github.com/susruth/slnt`](https://github.com/susruth/slnt) repository license.

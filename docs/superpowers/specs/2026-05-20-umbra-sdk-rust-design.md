@@ -1,8 +1,8 @@
-# Umbra Rust SDK & Lifecycle Demo — Design Spec
+# Slnt Rust SDK & Lifecycle Demo — Design Spec
 
 **Date:** 2026-05-20
 **Status:** Draft for review
-**Scope:** A Rust library that implements the Umbra v1 stealth-payment
+**Scope:** A Rust library that implements the Slnt v1 stealth-payment
 primitives (spec §§3–5), plus an example binary that runs the full
 sender → pinboard → recipient → sweep lifecycle against a local Solana
 validator.
@@ -13,7 +13,7 @@ validator.
 
 ## 1. Goals
 
-- A standalone Rust crate (`crates/umbra-sdk`) that implements the v1
+- A standalone Rust crate (`crates/slnt-sdk`) that implements the v1
   cryptography from spec §§3–5 with a clean public API.
 - A runnable `examples/lifecycle.rs` that exercises the entire send →
   scan → sweep flow end-to-end against `solana-test-validator`.
@@ -43,11 +43,11 @@ validator.
 ## 3. Crate layout
 
 ```
-crates/umbra-sdk/
+crates/slnt-sdk/
 ├── Cargo.toml
 ├── src/
 │   ├── lib.rs            — re-exports
-│   ├── error.rs          — `UmbraError` enum
+│   ├── error.rs          — `SlntError` enum
 │   ├── keys.rs           — key derivation + meta-address codec
 │   ├── sender.rs         — stealth-address derivation, sender side
 │   ├── recipient.rs      — scan, view-tag filter, scalar reconstruction
@@ -62,9 +62,9 @@ Workspace `Cargo.toml` adds `"crates/*"` to `members`.
 ## 4. Public API sketch
 
 ```rust
-// crates/umbra-sdk/src/lib.rs
+// crates/slnt-sdk/src/lib.rs
 
-pub use error::UmbraError;
+pub use error::SlntError;
 pub use keys::{
     derive_stealth_keys, MetaAddress, ScanKey, SpendKey, MetaAddressVersion,
 };
@@ -92,7 +92,7 @@ pub struct ScanKey {
 
 /// Derive (SpendKey, ScanKey) from a 64-byte Ed25519 signature over the
 /// canonical message defined in spec §3.1.
-pub fn derive_stealth_keys(signature_64: &[u8; 64]) -> Result<(SpendKey, ScanKey), UmbraError>;
+pub fn derive_stealth_keys(signature_64: &[u8; 64]) -> Result<(SpendKey, ScanKey), SlntError>;
 
 pub struct MetaAddress {
     pub version: u8,         // 0x01 for v1
@@ -103,8 +103,8 @@ pub struct MetaAddress {
 }
 
 impl MetaAddress {
-    pub fn encode_bech32m(&self) -> String;                  // HRP `umbra`
-    pub fn decode_bech32m(s: &str) -> Result<Self, UmbraError>;
+    pub fn encode_bech32m(&self) -> String;                  // HRP `slnt`
+    pub fn decode_bech32m(s: &str) -> Result<Self, SlntError>;
 }
 ```
 
@@ -124,7 +124,7 @@ pub struct StealthPayment {
 pub fn derive_payment(
     meta_address: &MetaAddress,
     rng: &mut impl rand_core::CryptoRngCore,
-) -> Result<StealthPayment, UmbraError>;
+) -> Result<StealthPayment, SlntError>;
 ```
 
 ### 4.3 Recipient
@@ -144,20 +144,20 @@ pub fn scan_note(
     scan: &ScanKey,
     ephemeral_pub: &[u8; 32],
     view_tag: u8,
-) -> Result<Option<NoteMatch>, UmbraError>;
+) -> Result<Option<NoteMatch>, SlntError>;
 ```
 
 ### 4.4 Stealth signing (the load-bearing detail)
 
 ```rust
 /// An Ed25519 signing key constructed from a scalar (not a seed).
-/// Required because Umbra produces `p_stealth` as a Scalar; standard
+/// Required because Slnt produces `p_stealth` as a Scalar; standard
 /// `ed25519_dalek::SigningKey` derives the scalar from a seed via SHA-512.
 pub struct StealthSigningKey {
     scalar: curve25519_dalek::Scalar,
     verifying_key: ed25519_dalek::VerifyingKey,
     /// Deterministic hash-prefix for RFC 8032 nonce derivation. We
-    /// derive it from the scalar via SHA-512("umbra-v1-nonce" || scalar)
+    /// derive it from the scalar via SHA-512("slnt-v1-nonce" || scalar)
     /// so signatures are deterministic without exposing the scalar.
     hash_prefix: [u8; 32],
 }
@@ -250,7 +250,7 @@ implementation:
 | `SC25519_reduce` | `curve25519_dalek::Scalar::from_bytes_mod_order` | Standard, audited, exactly mod-ℓ reduction |
 | `X25519_clamp` | Done implicitly by `x25519_dalek::StaticSecret::from(...)` | The crate clamps on construction |
 | Edwards point add | `curve25519_dalek::EdwardsPoint` arithmetic | Standard, well-tested |
-| Stealth nonce derivation | `SHA-512("umbra-v1-nonce" \|\| scalar.to_bytes())[32..64]` as `hash_prefix` | Deterministic; doesn't leak scalar; stable across signatures |
+| Stealth nonce derivation | `SHA-512("slnt-v1-nonce" \|\| scalar.to_bytes())[32..64]` as `hash_prefix` | Deterministic; doesn't leak scalar; stable across signatures |
 | Compressed Ed25519 → point | `CompressedEdwardsY::decompress()` returns `Option<EdwardsPoint>`; treat `None` as invalid input | Spec says abort on derivation error |
 | `version` byte location in bech32m | First byte of data part, before B_spend | Matches spec §3.2 table order |
 | LEB128 varint | Hand-roll (~20 LOC) — encoding-only, all values ≤ u32 in v1 | Avoids pulling a varint crate for one site |

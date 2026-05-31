@@ -1,0 +1,27 @@
+{
+  "name": "@slnt/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript wallet SDK for the Slnt stealth-payment protocol (sRFC-0042)",
+  "license": "MIT",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "mocha",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.6.0",
+    "@noble/hashes": "^1.5.0",
+    "@scure/base": "^1.1.9",
+    "@solana/spl-token": "^0.4.8",
+    "@solana/web3.js": "^1.95.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.5",
+    "chai": "^4.4.1",
+    "mocha": "^10.2.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.3.3"
+  }
+}

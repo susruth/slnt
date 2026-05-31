@@ -1,8 +1,9 @@
 [package]
 name = "pinboard"
 version = "0.1.0"
-description = "Pinboard: a permissionless on-chain note primitive for Solana (used by the Umbra stealth-payment protocol)"
+description = "Pinboard: a permissionless on-chain note primitive for Solana (used by the Slnt stealth-payment protocol)"
 edition = "2021"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "lib"]

@@ -1,8 +1,9 @@
 [package]
 name = "registry"
 version = "0.1.0"
-description = "Umbra Registry: maps Solana pubkeys to Umbra meta-addresses (used by the Umbra stealth-payment protocol)"
+description = "Slnt Registry: maps Solana pubkeys to Slnt meta-addresses (used by the Slnt stealth-payment protocol)"
 edition = "2021"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "lib"]

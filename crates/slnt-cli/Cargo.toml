@@ -1,0 +1,17 @@
+[package]
+name = "slnt-cli"
+version = "0.1.0"
+edition = "2021"
+description = "Command-line tools for the Slnt stealth-payment protocol (v1)"
+license = "MIT"
+
+[[bin]]
+name = "slnt"
+path = "src/main.rs"
+
+[dependencies]
+slnt-sdk = { path = "../slnt-sdk" }
+clap = { version = "4", features = ["derive"] }
+hex = "0.4"
+rand_chacha = "0.3"
+rand_core = "0.6"

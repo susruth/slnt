@@ -1,8 +1,8 @@
-# Umbra Rust SDK & Lifecycle Demo Implementation Plan
+# Slnt Rust SDK & Lifecycle Demo Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Rust SDK (`crates/umbra-sdk`) that implements the Umbra v1 stealth-payment primitives from spec §§3–5, plus an `examples/lifecycle.rs` binary that runs the full sender → pinboard → recipient → sweep flow against a local Solana validator.
+**Goal:** Build a Rust SDK (`crates/slnt-sdk`) that implements the Slnt v1 stealth-payment primitives from spec §§3–5, plus an `examples/lifecycle.rs` binary that runs the full sender → pinboard → recipient → sweep flow against a local Solana validator.
 
 **Architecture:** Five small modules (`keys`, `sender`, `recipient`, `stealth_signing`, `pinboard`) compose into the library. Each is testable in isolation; together they implement spec §§3–5 of `docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md`. The `lifecycle` example wires them up against an `RpcClient` and exercises every step end-to-end. A shell wrapper (`scripts/demo-lifecycle.sh`) starts `solana-test-validator` with the pinboard preloaded, runs the example, and tears down.
 
@@ -20,7 +20,7 @@
 - `SC25519_reduce` = `Scalar::from_bytes_mod_order` (curve25519-dalek)
 - `X25519_clamp` = done implicitly by `x25519_dalek::StaticSecret::from(...)`
 - Domain-separation tag length encoding: **1 byte** (all v1 tags are <256 bytes)
-- Stealth Ed25519 `hash_prefix` = `SHA-512("umbra-v1-nonce" || scalar_bytes)[32..64]`
+- Stealth Ed25519 `hash_prefix` = `SHA-512("slnt-v1-nonce" || scalar_bytes)[32..64]`
 - Anchor discriminator for `post`: `[223, 96, 234, 236, 158, 106, 145, 94]` = `SHA-256("global:post")[..8]`
 - Anchor event discriminator for `Note`: `[40, 182, 5, 151, 115, 43, 27, 97]` = `SHA-256("event:Note")[..8]`
 
@@ -30,8 +30,8 @@
 
 - [ ] **Verify pinboard already builds** (sanity check):
   ```bash
-  ls /Users/susruth/Documents/Projects/umbra/target/deploy/pinboard.so \
-     /Users/susruth/Documents/Projects/umbra/target/idl/pinboard.json
+  ls /Users/susruth/Documents/Projects/slnt/target/deploy/pinboard.so \
+     /Users/susruth/Documents/Projects/slnt/target/idl/pinboard.json
   ```
   Both files must exist. If not, run `./scripts/build.sh` first.
 
@@ -40,14 +40,14 @@
 ## Task 1: Scaffold the SDK crate
 
 **Files:**
-- Modify: `/Users/susruth/Documents/Projects/umbra/Cargo.toml` (add `"crates/*"` to workspace `members`)
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/Cargo.toml`
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs`
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/error.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/Cargo.toml` (add `"crates/*"` to workspace `members`)
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/Cargo.toml`
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs`
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/error.rs`
 
 - [ ] **Step 1.1: Add `crates/*` to workspace members**
 
-Open `/Users/susruth/Documents/Projects/umbra/Cargo.toml` and replace the `members` list:
+Open `/Users/susruth/Documents/Projects/slnt/Cargo.toml` and replace the `members` list:
 
 ```toml
 [workspace]
@@ -69,18 +69,18 @@ codegen-units = 1
 
 - [ ] **Step 1.2: Create the SDK crate manifest**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/Cargo.toml`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/Cargo.toml`:
 
 ```toml
 [package]
-name = "umbra-sdk"
+name = "slnt-sdk"
 version = "0.1.0"
 edition = "2021"
-description = "Rust SDK for the Umbra stealth-payment protocol on Solana (v1)"
+description = "Rust SDK for the Slnt stealth-payment protocol on Solana (v1)"
 license = "Apache-2.0"
 
 [lib]
-name = "umbra_sdk"
+name = "slnt_sdk"
 path = "src/lib.rs"
 
 [dependencies]
@@ -106,10 +106,10 @@ path = "examples/lifecycle.rs"
 
 - [ ] **Step 1.3: Create `src/lib.rs`**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs`:
 
 ```rust
-//! Umbra Rust SDK — v1 stealth-payment primitives on Solana.
+//! Slnt Rust SDK — v1 stealth-payment primitives on Solana.
 //!
 //! See the design spec at
 //! `docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md`.
@@ -121,7 +121,7 @@ pub mod recipient;
 pub mod sender;
 pub mod stealth_signing;
 
-pub use error::UmbraError;
+pub use error::SlntError;
 ```
 
 Note: `keys.rs`, `sender.rs`, etc. don't exist yet — `lib.rs` will fail to compile until later tasks create them. That's expected; we'll bring it up gradually.
@@ -129,23 +129,23 @@ Note: `keys.rs`, `sender.rs`, etc. don't exist yet — `lib.rs` will fail to com
 For now, comment out the modules that don't exist yet to keep the crate compilable after Task 1:
 
 ```rust
-//! Umbra Rust SDK — v1 stealth-payment primitives on Solana.
+//! Slnt Rust SDK — v1 stealth-payment primitives on Solana.
 
 pub mod error;
-pub use error::UmbraError;
+pub use error::SlntError;
 ```
 
 We'll add `pub mod keys;` etc. as each module is created.
 
 - [ ] **Step 1.4: Create `src/error.rs`**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/error.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/error.rs`:
 
 ```rust
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum UmbraError {
+pub enum SlntError {
     #[error("key derivation failed (signature produced anomalous scalar)")]
     Derivation,
 
@@ -175,8 +175,8 @@ pub enum UmbraError {
 - [ ] **Step 1.5: Build to verify scaffold**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo build -p umbra-sdk 2>&1 | tail -10
+cd /Users/susruth/Documents/Projects/slnt
+cargo build -p slnt-sdk 2>&1 | tail -10
 ```
 
 Expected: clean build with no warnings. If the lockfile picks new versions of dependencies, that's fine.
@@ -184,13 +184,13 @@ Expected: clean build with no warnings. If the lockfile picks new versions of de
 - [ ] **Step 1.6: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add Cargo.toml Cargo.lock crates/umbra-sdk/Cargo.toml crates/umbra-sdk/src/lib.rs crates/umbra-sdk/src/error.rs
+cd /Users/susruth/Documents/Projects/slnt
+git add Cargo.toml Cargo.lock crates/slnt-sdk/Cargo.toml crates/slnt-sdk/src/lib.rs crates/slnt-sdk/src/error.rs
 git commit -m "$(cat <<'EOF'
-chore(umbra-sdk): scaffold crate with error enum
+chore(slnt-sdk): scaffold crate with error enum
 
-Adds crates/* to the workspace and creates an empty umbra-sdk crate
-with just an UmbraError enum. Modules added in subsequent commits.
+Adds crates/* to the workspace and creates an empty slnt-sdk crate
+with just an SlntError enum. Modules added in subsequent commits.
 EOF
 )"
 ```
@@ -200,30 +200,30 @@ EOF
 ## Task 2: Key derivation from signature
 
 **Files:**
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/keys.rs`
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs` (add `pub mod keys;`)
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/keys.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs` (add `pub mod keys;`)
 
 - [ ] **Step 2.1: Add module declaration**
 
-Edit `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs` to add the `keys` module:
+Edit `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs` to add the `keys` module:
 
 ```rust
-//! Umbra Rust SDK — v1 stealth-payment primitives on Solana.
+//! Slnt Rust SDK — v1 stealth-payment primitives on Solana.
 
 pub mod error;
 pub mod keys;
 
-pub use error::UmbraError;
+pub use error::SlntError;
 ```
 
 - [ ] **Step 2.2: Create `keys.rs` with the public types and `derive_stealth_keys` (no meta-address codec yet — Task 3)**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/keys.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/keys.rs`:
 
 ```rust
 //! Key derivation and meta-address codec (spec §3).
 
-use crate::error::UmbraError;
+use crate::error::SlntError;
 use curve25519_dalek::{constants::ED25519_BASEPOINT_POINT, EdwardsPoint, Scalar};
 use hkdf::Hkdf;
 use sha2::Sha256;
@@ -233,12 +233,12 @@ use x25519_dalek::{PublicKey as X25519PublicKey, StaticSecret as X25519StaticSec
 /// part of the spec message; the string ends after "ability." with no
 /// trailing newline (matching spec §3.1: "exact UTF-8, no trailing
 /// newline").
-pub const CANONICAL_MESSAGE_LOCALNET: &str = "Umbra Protocol: Derive Stealth Keys\n\nVersion: 1\nNetwork: Localnet\nWarning: Only sign this message in the Umbra wallet or a trusted Umbra integration.\nSigning this in any other context will reveal your stealth address scanning ability.";
+pub const CANONICAL_MESSAGE_LOCALNET: &str = "Slnt Protocol: Derive Stealth Keys\n\nVersion: 1\nNetwork: Localnet\nWarning: Only sign this message in the Slnt wallet or a trusted Slnt integration.\nSigning this in any other context will reveal your stealth address scanning ability.";
 
 pub const META_ADDRESS_VERSION_V1: u8 = 0x01;
 pub const SCHEME_ID_V1: u16 = 0x0001;
 
-const HKDF_SALT_DERIVE: &[u8] = b"umbra-v1-derive";
+const HKDF_SALT_DERIVE: &[u8] = b"slnt-v1-derive";
 const HKDF_INFO_SPEND_AND_SCAN: &[u8] = b"spend-and-scan";
 
 /// Recipient's spend key in scalar form. `point = scalar * G_ed`.
@@ -272,18 +272,18 @@ impl ScanKey {
 
 /// Spec §3.1 derivation:
 ///   ikm = signature
-///   seed = HKDF-SHA256(salt="umbra-v1-derive", ikm, info="spend-and-scan", L=64)
+///   seed = HKDF-SHA256(salt="slnt-v1-derive", ikm, info="spend-and-scan", L=64)
 ///   b_spend = SC25519_reduce(seed[0..32])
 ///   b_scan_raw = seed[32..64]
 ///   B_spend = b_spend * G_ed
 ///   b_scan = X25519_clamp(b_scan_raw); B_scan = b_scan * G_x
 pub fn derive_stealth_keys(
     signature_64: &[u8; 64],
-) -> Result<(SpendKey, ScanKey), UmbraError> {
+) -> Result<(SpendKey, ScanKey), SlntError> {
     let hk = Hkdf::<Sha256>::new(Some(HKDF_SALT_DERIVE), signature_64);
     let mut seed = [0u8; 64];
     hk.expand(HKDF_INFO_SPEND_AND_SCAN, &mut seed)
-        .map_err(|_| UmbraError::Derivation)?;
+        .map_err(|_| SlntError::Derivation)?;
 
     let mut b_spend_bytes = [0u8; 32];
     b_spend_bytes.copy_from_slice(&seed[0..32]);
@@ -293,7 +293,7 @@ pub fn derive_stealth_keys(
     // SC25519_reduce: 32 bytes → Ed25519 scalar mod ℓ.
     let b_spend = Scalar::from_bytes_mod_order(b_spend_bytes);
     if b_spend == Scalar::ZERO {
-        return Err(UmbraError::Derivation);
+        return Err(SlntError::Derivation);
     }
     let b_spend_point = b_spend * ED25519_BASEPOINT_POINT;
 
@@ -356,8 +356,8 @@ mod tests {
 - [ ] **Step 2.3: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo test -p umbra-sdk keys:: 2>&1 | tail -15
+cd /Users/susruth/Documents/Projects/slnt
+cargo test -p slnt-sdk keys:: 2>&1 | tail -15
 ```
 
 Expected: 3 tests pass.
@@ -365,10 +365,10 @@ Expected: 3 tests pass.
 - [ ] **Step 2.4: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/src/lib.rs crates/umbra-sdk/src/keys.rs Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/src/lib.rs crates/slnt-sdk/src/keys.rs Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): derive (SpendKey, ScanKey) from canonical signature
+feat(slnt-sdk): derive (SpendKey, ScanKey) from canonical signature
 
 Implements spec §3.1: HKDF-SHA256 → split into b_spend_raw, b_scan_raw
 → scalar-reduce b_spend, X25519-clamp b_scan, derive public points.
@@ -381,16 +381,16 @@ EOF
 ## Task 3: Meta-address bech32m codec
 
 **Files:**
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/keys.rs` (add MetaAddress and codec)
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/keys.rs` (add MetaAddress and codec)
 
 - [ ] **Step 3.1: Append `MetaAddress` type, LEB128 helpers, and codec to `keys.rs`**
 
-Append to the bottom of `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/keys.rs` (before the `#[cfg(test)] mod tests { ... }` block — move the tests after the new code, or simply insert above the existing tests module):
+Append to the bottom of `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/keys.rs` (before the `#[cfg(test)] mod tests { ... }` block — move the tests after the new code, or simply insert above the existing tests module):
 
 ```rust
 use bech32::{Bech32m, Hrp};
 
-const META_ADDRESS_HRP: &str = "umbra";
+const META_ADDRESS_HRP: &str = "slnt";
 
 /// Spec §3.2 meta-address.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -414,7 +414,7 @@ impl MetaAddress {
         }
     }
 
-    pub fn encode_bech32m(&self) -> Result<String, UmbraError> {
+    pub fn encode_bech32m(&self) -> Result<String, SlntError> {
         let mut payload = Vec::with_capacity(72);
         payload.push(self.version);
         payload.extend_from_slice(&self.b_spend);
@@ -423,24 +423,24 @@ impl MetaAddress {
         payload.push(self.flags);
 
         let hrp = Hrp::parse(META_ADDRESS_HRP)
-            .map_err(|_| UmbraError::MetaAddressEncode)?;
+            .map_err(|_| SlntError::MetaAddressEncode)?;
         bech32::encode::<Bech32m>(hrp, &payload)
-            .map_err(|_| UmbraError::MetaAddressEncode)
+            .map_err(|_| SlntError::MetaAddressEncode)
     }
 
-    pub fn decode_bech32m(s: &str) -> Result<Self, UmbraError> {
+    pub fn decode_bech32m(s: &str) -> Result<Self, SlntError> {
         let (hrp, data) = bech32::decode(s)
-            .map_err(|e| UmbraError::MetaAddressDecode(format!("{e}")))?;
+            .map_err(|e| SlntError::MetaAddressDecode(format!("{e}")))?;
         if hrp.as_str() != META_ADDRESS_HRP {
-            return Err(UmbraError::MetaAddressDecode(format!(
-                "expected HRP `umbra`, got `{}`",
+            return Err(SlntError::MetaAddressDecode(format!(
+                "expected HRP `slnt`, got `{}`",
                 hrp.as_str()
             )));
         }
         // Minimum payload: 1 (version) + 32 (B_spend) + 32 (B_scan)
         //                + 1 (varint label_index = 0) + 1 (flags) = 67 bytes
         if data.len() < 67 {
-            return Err(UmbraError::MetaAddressDecode(format!(
+            return Err(SlntError::MetaAddressDecode(format!(
                 "payload too short: {} bytes",
                 data.len()
             )));
@@ -448,7 +448,7 @@ impl MetaAddress {
 
         let version = data[0];
         if version != META_ADDRESS_VERSION_V1 {
-            return Err(UmbraError::UnsupportedVersion(version));
+            return Err(SlntError::UnsupportedVersion(version));
         }
 
         let mut b_spend = [0u8; 32];
@@ -459,14 +459,14 @@ impl MetaAddress {
         let (label_index, consumed) = read_leb128_u32(&data[65..])?;
         let flags_offset = 65 + consumed;
         if data.len() <= flags_offset {
-            return Err(UmbraError::MetaAddressDecode(
+            return Err(SlntError::MetaAddressDecode(
                 "missing flags byte".into(),
             ));
         }
         let flags = data[flags_offset];
         // Anything trailing is an error.
         if data.len() != flags_offset + 1 {
-            return Err(UmbraError::MetaAddressDecode(format!(
+            return Err(SlntError::MetaAddressDecode(format!(
                 "{} trailing bytes after payload",
                 data.len() - flags_offset - 1
             )));
@@ -492,14 +492,14 @@ fn write_leb128_u32(out: &mut Vec<u8>, mut val: u32) {
 }
 
 /// Unsigned LEB128 decode. Returns (value, bytes_consumed).
-fn read_leb128_u32(data: &[u8]) -> Result<(u32, usize), UmbraError> {
+fn read_leb128_u32(data: &[u8]) -> Result<(u32, usize), SlntError> {
     let mut val: u64 = 0;
     let mut shift = 0u32;
     for (i, byte) in data.iter().take(5).enumerate() {
         val |= ((byte & 0x7f) as u64) << shift;
         if byte & 0x80 == 0 {
             if val > u32::MAX as u64 {
-                return Err(UmbraError::MetaAddressDecode(
+                return Err(SlntError::MetaAddressDecode(
                     "varint exceeds u32".into(),
                 ));
             }
@@ -507,7 +507,7 @@ fn read_leb128_u32(data: &[u8]) -> Result<(u32, usize), UmbraError> {
         }
         shift += 7;
     }
-    Err(UmbraError::MetaAddressDecode("varint too long".into()))
+    Err(SlntError::MetaAddressDecode("varint too long".into()))
 }
 ```
 
@@ -521,7 +521,7 @@ Append these tests to the existing `mod tests` block in `keys.rs`:
         let (spend, scan) = derive_stealth_keys(&TEST_SIG).unwrap();
         let meta = MetaAddress::from_keys(&spend, &scan);
         let encoded = meta.encode_bech32m().unwrap();
-        assert!(encoded.starts_with("umbra1"));
+        assert!(encoded.starts_with("slnt1"));
         let decoded = MetaAddress::decode_bech32m(&encoded).unwrap();
         assert_eq!(meta, decoded);
     }
@@ -544,7 +544,7 @@ Append these tests to the existing `mod tests` block in `keys.rs`:
 
     #[test]
     fn meta_address_rejects_wrong_hrp() {
-        // "btc1..." instead of "umbra1..."
+        // "btc1..." instead of "slnt1..."
         let bogus = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080";
         assert!(MetaAddress::decode_bech32m(bogus).is_err());
     }
@@ -561,7 +561,7 @@ Append these tests to the existing `mod tests` block in `keys.rs`:
         };
         let encoded = meta.encode_bech32m().unwrap();
         match MetaAddress::decode_bech32m(&encoded) {
-            Err(UmbraError::UnsupportedVersion(0x02)) => {}
+            Err(SlntError::UnsupportedVersion(0x02)) => {}
             other => panic!("expected UnsupportedVersion(0x02), got {other:?}"),
         }
     }
@@ -581,8 +581,8 @@ Append these tests to the existing `mod tests` block in `keys.rs`:
 - [ ] **Step 3.3: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo test -p umbra-sdk keys:: 2>&1 | tail -15
+cd /Users/susruth/Documents/Projects/slnt
+cargo test -p slnt-sdk keys:: 2>&1 | tail -15
 ```
 
 Expected: 8 tests pass (3 from Task 2 + 5 new).
@@ -590,10 +590,10 @@ Expected: 8 tests pass (3 from Task 2 + 5 new).
 - [ ] **Step 3.4: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/src/keys.rs Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/src/keys.rs Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): bech32m meta-address codec with LEB128 label index
+feat(slnt-sdk): bech32m meta-address codec with LEB128 label index
 EOF
 )"
 ```
@@ -603,31 +603,31 @@ EOF
 ## Task 4: Sender stealth-address derivation
 
 **Files:**
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/sender.rs`
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs` (add `pub mod sender;`)
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/sender.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs` (add `pub mod sender;`)
 
 - [ ] **Step 4.1: Add module declaration**
 
-Edit `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs`:
+Edit `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs`:
 
 ```rust
-//! Umbra Rust SDK — v1 stealth-payment primitives on Solana.
+//! Slnt Rust SDK — v1 stealth-payment primitives on Solana.
 
 pub mod error;
 pub mod keys;
 pub mod sender;
 
-pub use error::UmbraError;
+pub use error::SlntError;
 ```
 
 - [ ] **Step 4.2: Create `sender.rs`**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/sender.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/sender.rs`:
 
 ```rust
 //! Sender-side stealth-address derivation (spec §4).
 
-use crate::error::UmbraError;
+use crate::error::SlntError;
 use crate::keys::MetaAddress;
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT, edwards::CompressedEdwardsY, Scalar,
@@ -639,7 +639,7 @@ use x25519_dalek::{PublicKey as X25519PublicKey, StaticSecret as X25519StaticSec
 
 /// Domain-separation tag for the stealth-address tweak hash (spec §4
 /// step 3 and step 4). 14 bytes.
-const TWEAK_TAG: &[u8] = b"umbra-v1-tweak";
+const TWEAK_TAG: &[u8] = b"slnt-v1-tweak";
 
 /// Output of `derive_payment`.
 #[derive(Debug, Clone)]
@@ -658,12 +658,12 @@ pub struct StealthPayment {
 pub fn derive_payment(
     meta: &MetaAddress,
     rng: &mut impl CryptoRngCore,
-) -> Result<StealthPayment, UmbraError> {
+) -> Result<StealthPayment, SlntError> {
     // Decompress B_spend_effective (already incorporates label tweak if any).
     let b_spend_compressed = CompressedEdwardsY(meta.b_spend);
     let b_spend = b_spend_compressed
         .decompress()
-        .ok_or(UmbraError::InvalidPoint)?;
+        .ok_or(SlntError::InvalidPoint)?;
 
     // 1. Generate ephemeral X25519 scalar r.
     let mut r_bytes = [0u8; 32];
@@ -759,8 +759,8 @@ mod tests {
 - [ ] **Step 4.3: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo test -p umbra-sdk sender:: 2>&1 | tail -10
+cd /Users/susruth/Documents/Projects/slnt
+cargo test -p slnt-sdk sender:: 2>&1 | tail -10
 ```
 
 Expected: 2 tests pass.
@@ -768,10 +768,10 @@ Expected: 2 tests pass.
 - [ ] **Step 4.4: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/src/lib.rs crates/umbra-sdk/src/sender.rs Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/src/lib.rs crates/slnt-sdk/src/sender.rs Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): sender-side stealth-address derivation (spec §4)
+feat(slnt-sdk): sender-side stealth-address derivation (spec §4)
 EOF
 )"
 ```
@@ -781,27 +781,27 @@ EOF
 ## Task 5: Recipient scan & key recovery
 
 **Files:**
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/recipient.rs`
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs` (add `pub mod recipient;`)
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/recipient.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs` (add `pub mod recipient;`)
 
 - [ ] **Step 5.1: Add module declaration**
 
-Edit `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs`:
+Edit `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs`:
 
 ```rust
-//! Umbra Rust SDK — v1 stealth-payment primitives on Solana.
+//! Slnt Rust SDK — v1 stealth-payment primitives on Solana.
 
 pub mod error;
 pub mod keys;
 pub mod recipient;
 pub mod sender;
 
-pub use error::UmbraError;
+pub use error::SlntError;
 ```
 
 - [ ] **Step 5.2: Create `recipient.rs`**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/recipient.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/recipient.rs`:
 
 ```rust
 //! Recipient-side scanning (spec §5).
@@ -810,7 +810,7 @@ Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/recipient.r
 //! matches, you get back a `NoteMatch` containing the stealth address
 //! and the scalar to sign with.
 
-use crate::error::UmbraError;
+use crate::error::SlntError;
 use crate::keys::{ScanKey, SpendKey};
 use crate::sender::{compute_tweak, compute_view_tag};
 use curve25519_dalek::Scalar;
@@ -837,7 +837,7 @@ pub fn scan_note(
     scan: &ScanKey,
     ephemeral_pub: &[u8; 32],
     note_view_tag: u8,
-) -> Result<Option<NoteMatch>, UmbraError> {
+) -> Result<Option<NoteMatch>, SlntError> {
     // 1. ECDH using recipient's scan private key.
     let r_public = X25519PublicKey::from(*ephemeral_pub);
     let s_candidate = scan.static_secret.diffie_hellman(&r_public);
@@ -927,8 +927,8 @@ mod tests {
 - [ ] **Step 5.3: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo test -p umbra-sdk recipient:: 2>&1 | tail -10
+cd /Users/susruth/Documents/Projects/slnt
+cargo test -p slnt-sdk recipient:: 2>&1 | tail -10
 ```
 
 Expected: 2 tests pass.
@@ -936,10 +936,10 @@ Expected: 2 tests pass.
 - [ ] **Step 5.4: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/src/lib.rs crates/umbra-sdk/src/recipient.rs Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/src/lib.rs crates/slnt-sdk/src/recipient.rs Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): recipient scan with view-tag filter + key recovery (spec §5)
+feat(slnt-sdk): recipient scan with view-tag filter + key recovery (spec §5)
 EOF
 )"
 ```
@@ -949,15 +949,15 @@ EOF
 ## Task 6: Stealth Ed25519 signing (scalar-mode)
 
 **Files:**
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/stealth_signing.rs`
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs` (add `pub mod stealth_signing;`)
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/stealth_signing.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs` (add `pub mod stealth_signing;`)
 
 - [ ] **Step 6.1: Add module declaration**
 
-Edit `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs`:
+Edit `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs`:
 
 ```rust
-//! Umbra Rust SDK — v1 stealth-payment primitives on Solana.
+//! Slnt Rust SDK — v1 stealth-payment primitives on Solana.
 
 pub mod error;
 pub mod keys;
@@ -965,17 +965,17 @@ pub mod recipient;
 pub mod sender;
 pub mod stealth_signing;
 
-pub use error::UmbraError;
+pub use error::SlntError;
 ```
 
 - [ ] **Step 6.2: Create `stealth_signing.rs`**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/stealth_signing.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/stealth_signing.rs`:
 
 ```rust
 //! Ed25519 signing with a scalar-form private key (no RFC 8032 seed).
 //!
-//! Umbra's recipient sweep needs to sign Solana transactions from the
+//! Slnt's recipient sweep needs to sign Solana transactions from the
 //! stealth address. The recipient holds `p_stealth` as a Scalar (per
 //! spec §5), not an RFC 8032 seed.
 //!
@@ -991,7 +991,7 @@ use curve25519_dalek::{constants::ED25519_BASEPOINT_POINT, EdwardsPoint, Scalar}
 use ed25519_dalek::{Signature, VerifyingKey};
 use sha2::{Digest, Sha512};
 
-const NONCE_TAG: &[u8] = b"umbra-v1-nonce";
+const NONCE_TAG: &[u8] = b"slnt-v1-nonce";
 
 /// A scalar-form Ed25519 signing key.
 pub struct StealthSigningKey {
@@ -1126,8 +1126,8 @@ mod tests {
 - [ ] **Step 6.3: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo test -p umbra-sdk stealth_signing:: 2>&1 | tail -15
+cd /Users/susruth/Documents/Projects/slnt
+cargo test -p slnt-sdk stealth_signing:: 2>&1 | tail -15
 ```
 
 Expected: 3 tests pass.
@@ -1137,10 +1137,10 @@ Failure mode to watch for: if `Signature::from_bytes(&sig_bytes)` returns a `Res
 - [ ] **Step 6.4: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/src/lib.rs crates/umbra-sdk/src/stealth_signing.rs Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/src/lib.rs crates/slnt-sdk/src/stealth_signing.rs Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): scalar-mode Ed25519 signing via dalek hazmat
+feat(slnt-sdk): scalar-mode Ed25519 signing via dalek hazmat
 EOF
 )"
 ```
@@ -1150,15 +1150,15 @@ EOF
 ## Task 7: Pinboard `post` instruction builder
 
 **Files:**
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/pinboard.rs`
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs` (add `pub mod pinboard;`)
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/pinboard.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs` (add `pub mod pinboard;`)
 
 - [ ] **Step 7.1: Add module declaration**
 
-Edit `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/lib.rs`:
+Edit `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/lib.rs`:
 
 ```rust
-//! Umbra Rust SDK — v1 stealth-payment primitives on Solana.
+//! Slnt Rust SDK — v1 stealth-payment primitives on Solana.
 
 pub mod error;
 pub mod keys;
@@ -1167,12 +1167,12 @@ pub mod recipient;
 pub mod sender;
 pub mod stealth_signing;
 
-pub use error::UmbraError;
+pub use error::SlntError;
 ```
 
 - [ ] **Step 7.2: Create `pinboard.rs`**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/src/pinboard.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/src/pinboard.rs`:
 
 ```rust
 //! Build instructions and parse events for the pinboard program.
@@ -1325,7 +1325,7 @@ mod tests {
 
 - [ ] **Step 7.3: Add `base64` to the SDK's `Cargo.toml` deps**
 
-Edit `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/Cargo.toml`'s `[dependencies]` block to add `base64`:
+Edit `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/Cargo.toml`'s `[dependencies]` block to add `base64`:
 
 ```toml
 [dependencies]
@@ -1345,8 +1345,8 @@ base64 = "0.22"
 - [ ] **Step 7.4: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo test -p umbra-sdk pinboard:: 2>&1 | tail -15
+cd /Users/susruth/Documents/Projects/slnt
+cargo test -p slnt-sdk pinboard:: 2>&1 | tail -15
 ```
 
 Expected: 5 tests pass.
@@ -1354,8 +1354,8 @@ Expected: 5 tests pass.
 - [ ] **Step 7.5: Run the entire library test suite to verify no module is broken**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo test -p umbra-sdk 2>&1 | tail -10
+cd /Users/susruth/Documents/Projects/slnt
+cargo test -p slnt-sdk 2>&1 | tail -10
 ```
 
 Expected: 18 tests pass (3 + 5 + 2 + 2 + 3 + 5 — adjust if counts differ slightly).
@@ -1363,10 +1363,10 @@ Expected: 18 tests pass (3 + 5 + 2 + 2 + 3 + 5 — adjust if counts differ sligh
 - [ ] **Step 7.6: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/src/lib.rs crates/umbra-sdk/src/pinboard.rs crates/umbra-sdk/Cargo.toml Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/src/lib.rs crates/slnt-sdk/src/pinboard.rs crates/slnt-sdk/Cargo.toml Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): pinboard post instruction builder + Note event parser
+feat(slnt-sdk): pinboard post instruction builder + Note event parser
 EOF
 )"
 ```
@@ -1376,12 +1376,12 @@ EOF
 ## Task 8: Demo binary — setup phase (keypairs, airdrops, helpers)
 
 **Files:**
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/examples/lifecycle.rs`
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/Cargo.toml` (add `solana-client` to deps under a `[dev-dependencies]` or move it up — see step 8.1)
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/examples/lifecycle.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/Cargo.toml` (add `solana-client` to deps under a `[dev-dependencies]` or move it up — see step 8.1)
 
 - [ ] **Step 8.1: Add `solana-client` to the SDK's deps**
 
-Examples are dev-targets in Cargo and inherit dev-dependencies. Edit `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/Cargo.toml` to extend `[dev-dependencies]`:
+Examples are dev-targets in Cargo and inherit dev-dependencies. Edit `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/Cargo.toml` to extend `[dev-dependencies]`:
 
 ```toml
 [dev-dependencies]
@@ -1395,7 +1395,7 @@ solana-system-interface = "1"
 
 - [ ] **Step 8.2: Create `examples/lifecycle.rs` with just the setup phase**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/examples/lifecycle.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/examples/lifecycle.rs`:
 
 ```rust
 //! End-to-end stealth-payment lifecycle demo.
@@ -1435,7 +1435,7 @@ fn main() {
         CommitmentConfig::confirmed(),
     );
 
-    println!("== Umbra lifecycle demo ==");
+    println!("== Slnt lifecycle demo ==");
     println!("RPC: {}", RPC_URL);
     let pinboard_id = Pubkey::from_str(PINBOARD_PROGRAM_ID)
         .expect("PINBOARD_PROGRAM_ID parse");
@@ -1501,19 +1501,19 @@ fn airdrop_blocking(rpc: &RpcClient, recipient: &Pubkey, lamports: u64) {
 - [ ] **Step 8.3: Build the example (no run yet)**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo build -p umbra-sdk --example lifecycle 2>&1 | tail -10
+cd /Users/susruth/Documents/Projects/slnt
+cargo build -p slnt-sdk --example lifecycle 2>&1 | tail -10
 ```
 
-Expected: clean build. If a Solana-SDK-version mismatch surfaces in error messages, run `cargo tree -p umbra-sdk` to inspect.
+Expected: clean build. If a Solana-SDK-version mismatch surfaces in error messages, run `cargo tree -p slnt-sdk` to inspect.
 
 - [ ] **Step 8.4: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/Cargo.toml crates/umbra-sdk/examples/lifecycle.rs Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/Cargo.toml crates/slnt-sdk/examples/lifecycle.rs Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): lifecycle demo scaffolding (RPC setup + airdrops)
+feat(slnt-sdk): lifecycle demo scaffolding (RPC setup + airdrops)
 EOF
 )"
 ```
@@ -1523,11 +1523,11 @@ EOF
 ## Task 9: Demo binary — recipient setup, sender payment, on-chain post
 
 **Files:**
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/examples/lifecycle.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/examples/lifecycle.rs`
 
 - [ ] **Step 9.1: Replace `main()` with the full sender-side flow**
 
-Edit `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/examples/lifecycle.rs`. Replace the `main()` function (keep `airdrop_blocking` as-is at the bottom) with:
+Edit `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/examples/lifecycle.rs`. Replace the `main()` function (keep `airdrop_blocking` as-is at the bottom) with:
 
 ```rust
 fn main() {
@@ -1536,7 +1536,7 @@ fn main() {
         CommitmentConfig::confirmed(),
     );
 
-    println!("== Umbra lifecycle demo ==");
+    println!("== Slnt lifecycle demo ==");
     println!("RPC: {RPC_URL}");
     let pinboard_id = Pubkey::from_str(PINBOARD_PROGRAM_ID)
         .expect("PINBOARD_PROGRAM_ID parse");
@@ -1557,7 +1557,7 @@ fn main() {
     // For the demo, "sign" the canonical message with a fresh Ed25519
     // keypair derived from a fixed seed. In production this would be
     // a user wallet signature.
-    let canonical_msg = umbra_sdk::keys::CANONICAL_MESSAGE_LOCALNET.as_bytes();
+    let canonical_msg = slnt_sdk::keys::CANONICAL_MESSAGE_LOCALNET.as_bytes();
     let recipient_id_seed: [u8; 32] = [
         0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
         0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
@@ -1570,21 +1570,21 @@ fn main() {
     let signature: ed25519_dalek::Signature = recipient_id_sk.sign(canonical_msg);
     let sig_bytes: [u8; 64] = signature.to_bytes();
 
-    let (spend, scan) = umbra_sdk::keys::derive_stealth_keys(&sig_bytes)
+    let (spend, scan) = slnt_sdk::keys::derive_stealth_keys(&sig_bytes)
         .expect("derive_stealth_keys");
-    let meta = umbra_sdk::keys::MetaAddress::from_keys(&spend, &scan);
+    let meta = slnt_sdk::keys::MetaAddress::from_keys(&spend, &scan);
     let meta_str = meta.encode_bech32m().expect("encode meta-address");
     println!("  meta-address: {meta_str}");
 
     // ---- 3. Sender: derive stealth address ----
     println!("\n[3/6] sender: deriving stealth address");
     let decoded_meta =
-        umbra_sdk::keys::MetaAddress::decode_bech32m(&meta_str)
+        slnt_sdk::keys::MetaAddress::decode_bech32m(&meta_str)
             .expect("decode meta-address");
     // Use a strong RNG in production. Seeded here so demo output is
     // reproducible across runs.
     let mut sender_rng = ChaCha20Rng::seed_from_u64(0xdeadbeef);
-    let payment = umbra_sdk::sender::derive_payment(&decoded_meta, &mut sender_rng)
+    let payment = slnt_sdk::sender::derive_payment(&decoded_meta, &mut sender_rng)
         .expect("derive_payment");
     println!("  stealth address: {}", payment.stealth_address);
     println!("  ephemeral_pub:   {}", hex::encode(payment.ephemeral_pub));
@@ -1597,10 +1597,10 @@ fn main() {
         &payment.stealth_address,
         ONE_SOL,
     );
-    let post_ix = umbra_sdk::pinboard::build_post_instruction(
+    let post_ix = slnt_sdk::pinboard::build_post_instruction(
         &pinboard_id,
         &sender_wallet.pubkey(),
-        umbra_sdk::keys::SCHEME_ID_V1,
+        slnt_sdk::keys::SCHEME_ID_V1,
         payment.ephemeral_pub,
         payment.view_tag,
         vec![], // metadata: empty for demo
@@ -1651,8 +1651,8 @@ use std::{str::FromStr, time::Duration};
 - [ ] **Step 9.3: Build to verify**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo build -p umbra-sdk --example lifecycle 2>&1 | tail -10
+cd /Users/susruth/Documents/Projects/slnt
+cargo build -p slnt-sdk --example lifecycle 2>&1 | tail -10
 ```
 
 Expected: clean build (warnings about `recipient_wallet` etc. are fine; they'll be used in Task 10).
@@ -1662,10 +1662,10 @@ If `solana_system_interface::instruction::transfer` fails to resolve, replace wi
 - [ ] **Step 9.4: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/Cargo.toml crates/umbra-sdk/examples/lifecycle.rs Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/Cargo.toml crates/slnt-sdk/examples/lifecycle.rs Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): lifecycle demo — sender flow (transfer + post)
+feat(slnt-sdk): lifecycle demo — sender flow (transfer + post)
 EOF
 )"
 ```
@@ -1675,7 +1675,7 @@ EOF
 ## Task 10: Demo binary — recipient scan + sweep
 
 **Files:**
-- Modify: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/examples/lifecycle.rs`
+- Modify: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/examples/lifecycle.rs`
 
 - [ ] **Step 10.1: Replace the Task-9 placeholder section with full scan-and-sweep**
 
@@ -1702,7 +1702,7 @@ with:
     // ---- 6. Recipient: sweep stealth address ----
     println!("\n[6/6] recipient: sweeping stealth balance to main wallet");
     let stealth_signing_key =
-        umbra_sdk::stealth_signing::StealthSigningKey::new(matched.stealth_scalar);
+        slnt_sdk::stealth_signing::StealthSigningKey::new(matched.stealth_scalar);
     // Sanity check before we sign anything: the signing key's public
     // bytes must equal the stealth address bytes.
     assert_eq!(
@@ -1779,9 +1779,9 @@ with:
 fn scan_pinboard_for_match(
     rpc: &RpcClient,
     pinboard_id: &Pubkey,
-    spend: &umbra_sdk::keys::SpendKey,
-    scan: &umbra_sdk::keys::ScanKey,
-) -> Option<umbra_sdk::recipient::NoteMatch> {
+    spend: &slnt_sdk::keys::SpendKey,
+    scan: &slnt_sdk::keys::ScanKey,
+) -> Option<slnt_sdk::recipient::NoteMatch> {
     use solana_client::rpc_config::GetConfirmedSignaturesForAddress2Config;
     use solana_sdk::commitment_config::CommitmentConfig;
 
@@ -1823,8 +1823,8 @@ fn scan_pinboard_for_match(
                 })
                 .unwrap_or_default();
             for line in logs {
-                if let Ok(Some(note)) = umbra_sdk::pinboard::try_parse_note_log(&line) {
-                    if let Ok(Some(m)) = umbra_sdk::recipient::scan_note(
+                if let Ok(Some(note)) = slnt_sdk::pinboard::try_parse_note_log(&line) {
+                    if let Ok(Some(m)) = slnt_sdk::recipient::scan_note(
                         spend, scan, &note.ephemeral_pub, note.view_tag,
                     ) {
                         return Some(m);
@@ -1842,7 +1842,7 @@ fn scan_pinboard_for_match(
 
 - [ ] **Step 10.2: Add the missing crate dep for transaction-status parsing**
 
-The new `scan_pinboard_for_match` uses `solana_transaction_status`. Add it to `[dev-dependencies]` in `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/Cargo.toml`:
+The new `scan_pinboard_for_match` uses `solana_transaction_status`. Add it to `[dev-dependencies]` in `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/Cargo.toml`:
 
 ```toml
 [dev-dependencies]
@@ -1857,8 +1857,8 @@ ed25519-dalek = { version = "2.1", features = ["hazmat", "rand_core"] }
 - [ ] **Step 10.3: Build**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-cargo build -p umbra-sdk --example lifecycle 2>&1 | tail -10
+cd /Users/susruth/Documents/Projects/slnt
+cargo build -p slnt-sdk --example lifecycle 2>&1 | tail -10
 ```
 
 Expected: clean build.
@@ -1881,10 +1881,10 @@ let logs: Vec<String> = tx
 - [ ] **Step 10.4: Commit** (do NOT run the demo yet — that's the shell-script task)
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/Cargo.toml crates/umbra-sdk/examples/lifecycle.rs Cargo.lock
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/Cargo.toml crates/slnt-sdk/examples/lifecycle.rs Cargo.lock
 git commit -m "$(cat <<'EOF'
-feat(umbra-sdk): lifecycle demo — recipient scan + sweep with stealth signing
+feat(slnt-sdk): lifecycle demo — recipient scan + sweep with stealth signing
 EOF
 )"
 ```
@@ -1894,15 +1894,15 @@ EOF
 ## Task 11: Shell wrapper — start validator, deploy pinboard, run demo
 
 **Files:**
-- Create: `/Users/susruth/Documents/Projects/umbra/scripts/demo-lifecycle.sh`
+- Create: `/Users/susruth/Documents/Projects/slnt/scripts/demo-lifecycle.sh`
 
 - [ ] **Step 11.1: Create the wrapper script**
 
-Create `/Users/susruth/Documents/Projects/umbra/scripts/demo-lifecycle.sh`:
+Create `/Users/susruth/Documents/Projects/slnt/scripts/demo-lifecycle.sh`:
 
 ```bash
 #!/usr/bin/env bash
-# End-to-end Umbra stealth-payment lifecycle demo.
+# End-to-end Slnt stealth-payment lifecycle demo.
 #
 # Starts a fresh solana-test-validator with the pinboard program loaded
 # at G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P, runs the
@@ -1932,7 +1932,7 @@ solana-test-validator \
   --bpf-program "$PROGRAM_ID" "$PROGRAM_SO" \
   --reset \
   --quiet \
-  > /tmp/umbra-lifecycle-validator.log 2>&1 &
+  > /tmp/slnt-lifecycle-validator.log 2>&1 &
 VALIDATOR_PID=$!
 trap 'kill "$VALIDATOR_PID" 2>/dev/null || true; rm -rf test-ledger 2>/dev/null || true' EXIT
 
@@ -1945,7 +1945,7 @@ for i in {1..120}; do
   fi
   if [[ $i -eq 120 ]]; then
     echo "Validator did not become ready in 60s. Last log lines:"
-    tail -20 /tmp/umbra-lifecycle-validator.log
+    tail -20 /tmp/slnt-lifecycle-validator.log
     exit 1
   fi
   sleep 0.5
@@ -1954,7 +1954,7 @@ done
 # 5. Run the lifecycle.
 echo
 cargo run --release \
-  --manifest-path crates/umbra-sdk/Cargo.toml \
+  --manifest-path crates/slnt-sdk/Cargo.toml \
   --example lifecycle
 
 # 6. Cleanup happens via the EXIT trap.
@@ -1965,13 +1965,13 @@ echo "Demo complete — tearing down validator."
 - [ ] **Step 11.2: Make the script executable**
 
 ```bash
-chmod +x /Users/susruth/Documents/Projects/umbra/scripts/demo-lifecycle.sh
+chmod +x /Users/susruth/Documents/Projects/slnt/scripts/demo-lifecycle.sh
 ```
 
 - [ ] **Step 11.3: Run it end-to-end**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 ./scripts/demo-lifecycle.sh 2>&1 | tail -50
 ```
 
@@ -1987,10 +1987,10 @@ Possible failure modes and remedies:
 - [ ] **Step 11.4: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 git add scripts/demo-lifecycle.sh
 git commit -m "$(cat <<'EOF'
-chore(umbra-sdk): shell wrapper for end-to-end lifecycle demo
+chore(slnt-sdk): shell wrapper for end-to-end lifecycle demo
 EOF
 )"
 ```
@@ -2000,16 +2000,16 @@ EOF
 ## Task 12: SDK README
 
 **Files:**
-- Create: `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/README.md`
+- Create: `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/README.md`
 
 - [ ] **Step 12.1: Write the README**
 
-Create `/Users/susruth/Documents/Projects/umbra/crates/umbra-sdk/README.md`:
+Create `/Users/susruth/Documents/Projects/slnt/crates/slnt-sdk/README.md`:
 
 ```markdown
-# umbra-sdk
+# slnt-sdk
 
-Rust SDK for the [Umbra](../../docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md)
+Rust SDK for the [Slnt](../../docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md)
 stealth-payment protocol on Solana, v1.
 
 Implements spec §§3–5: key derivation from a wallet signature,
@@ -2044,7 +2044,7 @@ faithful "how to use this SDK" reference.
 ## Testing
 
 ```bash
-cargo test -p umbra-sdk
+cargo test -p slnt-sdk
 ```
 
 Unit tests cover deterministic key derivation, meta-address roundtrip,
@@ -2063,10 +2063,10 @@ those is a documented follow-up in the design spec at
 - [ ] **Step 12.2: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add crates/umbra-sdk/README.md
+cd /Users/susruth/Documents/Projects/slnt
+git add crates/slnt-sdk/README.md
 git commit -m "$(cat <<'EOF'
-docs(umbra-sdk): add README with module map and demo instructions
+docs(slnt-sdk): add README with module map and demo instructions
 EOF
 )"
 ```
@@ -2077,7 +2077,7 @@ EOF
 
 After all 12 tasks:
 
-- **`crates/umbra-sdk/`** — a Rust library implementing Umbra v1 §§3–6
+- **`crates/slnt-sdk/`** — a Rust library implementing Slnt v1 §§3–6
 - **`examples/lifecycle.rs`** — runnable demo of the full lifecycle
 - **`scripts/demo-lifecycle.sh`** — end-to-end shell orchestration
 - **~21 unit tests** + a passing live lifecycle

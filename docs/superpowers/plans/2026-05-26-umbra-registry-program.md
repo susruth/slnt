@@ -1,12 +1,12 @@
-# Umbra Registry Program Implementation Plan
+# Slnt Registry Program Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the `umbra_registry` Anchor program — a permissionless on-chain map from `(registrant_pubkey, scheme_id)` to an Umbra meta-address — plus the matching SDK helpers, so senders can discover a recipient's meta-address from just their main wallet pubkey.
+**Goal:** Build the `registry` Anchor program — a permissionless on-chain map from `(registrant_pubkey, scheme_id)` to an Slnt meta-address — plus the matching SDK helpers, so senders can discover a recipient's meta-address from just their main wallet pubkey.
 
 **Architecture:** A second Anchor program deployed alongside `pinboard`. One PDA per `(registrant, scheme_id)` pair, seeds `["meta", registrant, scheme_id_le]`. Four instructions: `register`, `update`, `close` — all registrant-signed. No global state, no admin, no upgrade authority. The SDK gains a pure `registry_pda` helper, a borsh decoder for the account, and an async `fetch_meta_address` over `solana-client`.
 
-**Tech Stack:** Anchor 0.31.1 (Rust), Solana 2.3 SDK, borsh 1.x, TypeScript Anchor mocha tests, existing `umbra-sdk` crate.
+**Tech Stack:** Anchor 0.31.1 (Rust), Solana 2.3 SDK, borsh 1.x, TypeScript Anchor mocha tests, existing `slnt-sdk` crate.
 
 **Reference spec:** `docs/superpowers/specs/2026-05-26-umbra-registry-program-design.md`
 
@@ -19,12 +19,12 @@
 - `programs/registry/Xargo.toml` — Xargo manifest (mirrors pinboard's)
 - `programs/registry/src/lib.rs` — program code (account, payload, error, instructions, events)
 - `tests/registry.ts` — Anchor mocha integration tests
-- `crates/umbra-sdk/src/registry.rs` — SDK helpers (PDA derivation, account parse, RPC fetch)
+- `crates/slnt-sdk/src/registry.rs` — SDK helpers (PDA derivation, account parse, RPC fetch)
 
 **Modify:**
 - `Anchor.toml` — register the new program ID under `[programs.localnet]` and `[programs.devnet]`
-- `crates/umbra-sdk/src/lib.rs` — add `pub mod registry;`
-- `crates/umbra-sdk/Cargo.toml` — no change expected; deps already cover what's needed
+- `crates/slnt-sdk/src/lib.rs` — add `pub mod registry;`
+- `crates/slnt-sdk/Cargo.toml` — no change expected; deps already cover what's needed
 
 The Cargo workspace at the repo root already globs `programs/*` and `crates/*`, so no `[workspace]` edit is required.
 
@@ -48,7 +48,7 @@ Write `programs/registry/Cargo.toml` with this exact content (copied from `progr
 [package]
 name = "registry"
 version = "0.1.0"
-description = "Umbra Registry: maps Solana pubkeys to Umbra meta-addresses (used by the Umbra stealth-payment protocol)"
+description = "Slnt Registry: maps Solana pubkeys to Slnt meta-addresses (used by the Slnt stealth-payment protocol)"
 edition = "2021"
 
 [lib]
@@ -81,7 +81,7 @@ use anchor_lang::prelude::*;
 declare_id!("11111111111111111111111111111111");
 
 #[program]
-pub mod umbra_registry {
+pub mod registry {
     use super::*;
 }
 ```
@@ -152,7 +152,7 @@ use anchor_lang::prelude::*;
 declare_id!("<KEEP THE PROGRAM ID FROM TASK 1>");
 
 #[program]
-pub mod umbra_registry {
+pub mod registry {
     use super::*;
 }
 
@@ -1069,17 +1069,17 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ## Task 7: SDK — PDA helper and account parsing
 
 **Files:**
-- Create: `crates/umbra-sdk/src/registry.rs`
-- Modify: `crates/umbra-sdk/src/lib.rs`
+- Create: `crates/slnt-sdk/src/registry.rs`
+- Modify: `crates/slnt-sdk/src/lib.rs`
 
 These are pure functions — testable with `cargo test`, no live validator needed.
 
 - [ ] **Step 1: Add the `registry` module to the SDK**
 
-Edit `crates/umbra-sdk/src/lib.rs`:
+Edit `crates/slnt-sdk/src/lib.rs`:
 
 ```rust
-//! Umbra Rust SDK — v1 stealth-payment primitives on Solana.
+//! Slnt Rust SDK — v1 stealth-payment primitives on Solana.
 
 pub mod error;
 pub mod keys;
@@ -1089,15 +1089,15 @@ pub mod registry;
 pub mod sender;
 pub mod stealth_signing;
 
-pub use error::UmbraError;
+pub use error::SlntError;
 ```
 
 - [ ] **Step 2: Create `registry.rs` with PDA derivation and account types**
 
-Create `crates/umbra-sdk/src/registry.rs`:
+Create `crates/slnt-sdk/src/registry.rs`:
 
 ```rust
-//! Helpers for the Umbra registry program.
+//! Helpers for the Slnt registry program.
 //!
 //! Provides PDA derivation matching the on-chain seeds and a borsh
 //! decoder for the `MetaAddressEntry` account. RPC fetching lives in
@@ -1244,7 +1244,7 @@ mod tests {
 
 - [ ] **Step 3: Run the SDK unit tests**
 
-Run: `cargo test -p umbra-sdk registry::`
+Run: `cargo test -p slnt-sdk registry::`
 Expected: 7 tests pass.
 
 If the `compute_account_discriminator` cached value is wrong, the `account_discriminator_matches_anchor_convention` test will fail and print the expected bytes. If that happens: copy the expected bytes from the panic into the const literal, re-run the test, and confirm it passes.
@@ -1252,8 +1252,8 @@ If the `compute_account_discriminator` cached value is wrong, the `account_discr
 - [ ] **Step 4: Commit**
 
 ```bash
-git add crates/umbra-sdk/src/registry.rs crates/umbra-sdk/src/lib.rs
-git commit -m "feat(umbra-sdk): registry PDA helper and account parser
+git add crates/slnt-sdk/src/registry.rs crates/slnt-sdk/src/lib.rs
+git commit -m "feat(slnt-sdk): registry PDA helper and account parser
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
@@ -1263,13 +1263,13 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ## Task 8: SDK — async `fetch_meta_address`
 
 **Files:**
-- Modify: `crates/umbra-sdk/src/registry.rs`
+- Modify: `crates/slnt-sdk/src/registry.rs`
 
 The async fetcher uses `solana-client`, which is already in `dev-dependencies` for the lifecycle example. Move it to a regular dependency so it's available from non-test code. Gate the helper behind a `rpc` feature to keep the core SDK dependency-light for embedded users.
 
 - [ ] **Step 1: Add the `rpc` feature and promote `solana-client` to a feature-gated regular dependency**
 
-Edit `crates/umbra-sdk/Cargo.toml`. Replace the `[dev-dependencies]` block and add a `[features]` section:
+Edit `crates/slnt-sdk/Cargo.toml`. Replace the `[dev-dependencies]` block and add a `[features]` section:
 
 ```toml
 [features]
@@ -1302,7 +1302,7 @@ Note: `solana-client` appears in both `[dependencies]` (optional, for the `rpc` 
 
 - [ ] **Step 2: Add the async fetcher**
 
-Append to `crates/umbra-sdk/src/registry.rs`:
+Append to `crates/slnt-sdk/src/registry.rs`:
 
 ```rust
 /// Fetch and decode a registered meta-address.
@@ -1335,24 +1335,24 @@ pub async fn fetch_meta_address(
 
 - [ ] **Step 3: Confirm the SDK still compiles without the feature flag**
 
-Run: `cargo build -p umbra-sdk`
+Run: `cargo build -p slnt-sdk`
 Expected: success.
 
 - [ ] **Step 4: Confirm the SDK compiles with the feature flag**
 
-Run: `cargo build -p umbra-sdk --features rpc`
+Run: `cargo build -p slnt-sdk --features rpc`
 Expected: success.
 
 - [ ] **Step 5: Run the unit tests one more time to ensure no regressions**
 
-Run: `cargo test -p umbra-sdk registry::`
+Run: `cargo test -p slnt-sdk registry::`
 Expected: same 7 tests pass. (`fetch_meta_address` has no unit test by design — it's a thin RPC wrapper. The parse path is covered by `parse_roundtrip` and friends.)
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add crates/umbra-sdk/Cargo.toml crates/umbra-sdk/src/registry.rs
-git commit -m "feat(umbra-sdk): async fetch_meta_address behind rpc feature
+git add crates/slnt-sdk/Cargo.toml crates/slnt-sdk/src/registry.rs
+git commit -m "feat(slnt-sdk): async fetch_meta_address behind rpc feature
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
@@ -1370,12 +1370,12 @@ Expected: all pinboard tests pass, all registry tests pass. No failures.
 
 - [ ] **Step 2: Run the full SDK test suite**
 
-Run: `cargo test -p umbra-sdk`
+Run: `cargo test -p slnt-sdk`
 Expected: all SDK tests pass, including the new `registry::` tests.
 
 - [ ] **Step 3: Confirm both feature configurations build**
 
-Run: `cargo build -p umbra-sdk && cargo build -p umbra-sdk --features rpc`
+Run: `cargo build -p slnt-sdk && cargo build -p slnt-sdk --features rpc`
 Expected: both succeed.
 
 - [ ] **Step 4: Confirm the program builds cleanly**
