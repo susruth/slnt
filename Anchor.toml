@@ -13,6 +13,10 @@ registry = "SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2"
 pinboard = "SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2"
 registry = "SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2"
 
+[programs.testnet]
+pinboard = "SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2"
+registry = "SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2"
+
 [registry]
 url = "https://api.apr.dev"
 
