@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **sRFC** | 0042 |
-| **Title** | SLNT: Silent Payments (Stealth Addresses) for Solana |
+| **Title** | SLNT: Silent Payments for Solana |
 | **Authors** | susruth (<susruth@susruth.com>) |
 | **Status** | Draft |
 | **Type** | Standards Track |
@@ -11,6 +11,43 @@
 | **Created** | 2026-05-31 |
 | **Requires** | Ed25519, X25519, SHA-256, HKDF-SHA256, bech32m |
 | **Reference deployments** | `pinboard`: `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` · `registry`: `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (vanity prefixes: `SLNTP…` = **P**inboard, `SLNTR…` = **R**egistry) |
+
+---
+
+## Contents
+
+- [1. Summary](#1-summary)
+- [2. Motivation](#2-motivation)
+  - [2.1 Goals (v1)](#21-goals-v1)
+  - [2.2 Non-goals (v1)](#22-non-goals-v1)
+- [3. Prior Art and Lineage](#3-prior-art-and-lineage)
+- [4. Terminology](#4-terminology)
+- [5. Specification](#5-specification)
+  - [5.1 Cryptographic primitives](#51-cryptographic-primitives)
+  - [5.2 Key generation and the meta-address](#52-key-generation-and-the-meta-address)
+  - [5.3 Stealth address derivation — sender](#53-stealth-address-derivation--sender)
+  - [5.4 Stealth address derivation — recipient](#54-stealth-address-derivation--recipient)
+  - [5.5 Announcement layer — the `pinboard` program](#55-announcement-layer--the-pinboard-program)
+  - [5.6 Meta-address registry — the `registry` program](#56-meta-address-registry--the-registry-program)
+  - [5.7 Sender transaction flows](#57-sender-transaction-flows)
+  - [5.8 Announcement modes](#58-announcement-modes)
+  - [5.9 Recipient sweep](#59-recipient-sweep)
+  - [5.10 Discovery and scanning](#510-discovery-and-scanning)
+  - [5.11 Versioning and scheme IDs](#511-versioning-and-scheme-ids)
+- [6. Rationale](#6-rationale)
+- [7. Backwards Compatibility](#7-backwards-compatibility)
+- [8. Security Considerations](#8-security-considerations)
+  - [8.1 Guarantees (observer without `b_scan`)](#81-guarantees-observer-without-b_scan)
+  - [8.2 Non-guarantees](#82-non-guarantees)
+  - [8.3 Deanonymization risks and required mitigations](#83-deanonymization-risks-and-required-mitigations)
+  - [8.4 Spam / DoS](#84-spam--dos)
+  - [8.5 Key-derivation integrity](#85-key-derivation-integrity)
+- [9. Reference Implementation](#9-reference-implementation)
+- [10. Internal design references](#10-internal-design-references)
+- [11. Future work](#11-future-work)
+- [12. Open Questions](#12-open-questions)
+- [13. Out of scope (v1)](#13-out-of-scope-v1)
+- [Copyright](#copyright)
 
 ---
 
@@ -44,14 +81,14 @@ SLNT takes the proven ideas from both ecosystems and adapts them. It also improv
 ### 2.1 Goals (v1)
 
 1. Support SOL, SPL tokens, and NFTs.
-2. Hardware-wallet and generic-wallet compatible via signed-message derivation (no seed access required); SLNT-native wallets with seed access MAY use the more ergonomic HD-path derivation instead (§5.2.1).
+2. Hardware-wallet and generic-wallet compatible via signed-message derivation (no seed access required); SLNT-native wallets with seed access MAY use the more ergonomic HD-path derivation instead ([§5.2.1](#521-key-derivation)).
 3. Stronger on-chain unlinkability than coupled-mode ERC-5564.
 4. Asset-agnostic at the protocol layer; asset-specific only at the SDK layer.
 5. Extensible to future cryptographic schemes (post-quantum, multi-curve) without breaking v1 wallets.
 
 ### 2.2 Non-goals (v1)
 
-Amount privacy; asset-type privacy; sender anonymity (the sender's fee-payer is visible); cross-chain unified meta-addresses; standardized encrypted memos; multi-recipient announcements; and a specific announcement-service economic model. See §13.
+Amount privacy; asset-type privacy; sender anonymity (the sender's fee-payer is visible); cross-chain unified meta-addresses; standardized encrypted memos; multi-recipient announcements; and a specific announcement-service economic model. See [§13](#13-out-of-scope-v1).
 
 ---
 
@@ -70,7 +107,7 @@ SLNT is a deliberate synthesis. The following table maps each SLNT component to 
 | Per-counterparty labels | Yes (label tweaks) | — | Yes (BIP-352-style) |
 | Meta-address registry | — | `ERC-6538` registry contract | `registry` PDA program |
 | Transfer ↔ announcement coupling | Implicitly silent | Coupled (announcement = the marker) | **Decoupled** (silent) by default |
-| Register-on-behalf (gasless) | — | `registerKeysOnBehalf` | Reserved (§7, future) |
+| Register-on-behalf (gasless) | — | `registerKeysOnBehalf` | Reserved ([§7](#7-backwards-compatibility), future) |
 
 What SLNT takes from each:
 
@@ -116,7 +153,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **
 
 **Domain-separation tags** (ASCII), included length-prefixed in every hash input as `H(len(tag) || tag || …)` to make inputs unambiguous:
 
-- `slnt-v1-derive` — stealth-key derivation (HKDF salt for both methods, §5.2.1)
+- `slnt-v1-derive` — stealth-key derivation (HKDF salt for both methods, [§5.2.1](#521-key-derivation))
 - `slnt-v1-tweak` — stealth-address tweak and view tag
 - `slnt-v1-label` — label tweak derivation
 - `slnt-v1-memo` — reserved for metadata encryption (not standardized in v1)
@@ -127,7 +164,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **
 
 #### 5.2.1 Key derivation
 
-A recipient's spend and scan keys derive from a pair of 32-byte secrets `(b_spend_raw, b_scan_raw)`, produced by one of two methods and then mapped to keys identically in §5.2.1.3.
+A recipient's spend and scan keys derive from a pair of 32-byte secrets `(b_spend_raw, b_scan_raw)`, produced by one of two methods and then mapped to keys identically in [§5.2.1.3](#5213-spend-and-scan-keys-common-to-both-methods).
 
 The two methods are **not interchangeable**: they produce different secrets, hence different keys and a different meta-address. A recipient **MUST** choose one method per stealth identity and use it consistently — directly analogous to the way the same mnemonic yields different addresses under the legacy Solana CLI derivation and the wallet `m/44'/501'/0'/0'` path. Wallets **SHOULD** record which method (and, for Method 1, which path) produced an identity so it can be recovered or re-imported.
 
@@ -151,7 +188,7 @@ b_spend_raw = SLIP10-Ed25519(seed, "m/0x534C4E54'/501'/account'/0'")   // 32 byt
 b_scan_raw  = SLIP10-Ed25519(seed, "m/0x534C4E54'/501'/account'/1'")   // 32 bytes
 ```
 
-The two 32-byte node values are used directly as the spend/scan secrets (§5.2.1.3) — no HKDF step, matching BIP-352's direct use of derived keys.
+The two 32-byte node values are used directly as the spend/scan secrets ([§5.2.1.3](#5213-spend-and-scan-keys-common-to-both-methods)) — no HKDF step, matching BIP-352's direct use of derived keys.
 
 Method 1 is deterministic from the seed and has no signing UX, so it avoids the randomized-signature failure mode of Method 2 entirely. It does require the wallet to support SLNT natively (seed access). The SLIP-0010 nodes and the Method-2 signature output occupy disjoint input domains, so the two methods cannot produce the same secrets.
 
@@ -207,10 +244,10 @@ A meta-address is bech32m-encoded with HRP `slnt` over the payload:
 | `version` | 1 byte | Meta-address encoding version. `0x01` for v1. |
 | `B_spend` | 32 bytes | Ed25519 spend public key (compressed). |
 | `B_scan` | 32 bytes | X25519 scan public key. |
-| `label_index` | unsigned LEB128, 1–5 bytes | `0` = unlabeled; `1+` = labelled (§5.2.3). |
+| `label_index` | unsigned LEB128, 1–5 bytes | `0` = unlabeled; `1+` = labelled ([§5.2.3](#523-labels-bip-352-style)). |
 | `flags` | 1 byte | Reserved. `0x00` in v1. |
 
-Total payload 67–71 bytes; encoded length ~120–126 characters (`slnt1…`). `version` is **independent** of the announcement `scheme_id` (§5.5): the former describes the meta-address bytes, the latter the cryptographic suite. Implementations **MUST** reject meta-addresses with `version != 0x01` in v1.
+Total payload 67–71 bytes; encoded length ~120–126 characters (`slnt1…`). `version` is **independent** of the announcement `scheme_id` ([§5.5](#55-announcement-layer--the-pinboard-program)): the former describes the meta-address bytes, the latter the cryptographic suite. Implementations **MUST** reject meta-addresses with `version != 0x01` in v1.
 
 #### 5.2.3 Labels (BIP-352 style)
 
@@ -247,7 +284,7 @@ P_stealth = B_spend_effective + t · G_ed               // Ed25519 point
 stealth_address = base58(compress(P_stealth))          // Solana address
 ```
 
-The sender then transfers the asset to `stealth_address` (§5.6) and publishes the announcement `(scheme_id = 0x0001, R, view_tag, metadata)` (§5.5). The `metadata` field is opaque to the protocol, **MUST** be ≤ 64 bytes, and **MAY** carry an implementation-defined encrypted memo keyed by `S` (not standardized in v1).
+The sender then transfers the asset to `stealth_address` ([§5.6](#56-meta-address-registry--the-registry-program)) and publishes the announcement `(scheme_id = 0x0001, R, view_tag, metadata)` ([§5.5](#55-announcement-layer--the-pinboard-program)). The `metadata` field is opaque to the protocol, **MUST** be ≤ 64 bytes, and **MAY** carry an implementation-defined encrypted memo keyed by `S` (not standardized in v1).
 
 ### 5.4 Stealth address derivation — recipient
 
@@ -271,7 +308,7 @@ for addr in [P_candidate, P_candidate_1, …]:
         record_payment(addr, label_index_if_matched, R)
 ```
 
-**Spend-scalar reconstruction** for sweeping (§5.7):
+**Spend-scalar reconstruction** for sweeping ([§5.7](#57-sender-transaction-flows)):
 
 ```
 p_stealth = (b_spend + t)       mod ℓ      // unlabeled
@@ -280,7 +317,7 @@ p_stealth = (b_spend + m_i + t) mod ℓ      // label i
 
 `p_stealth · G_ed` **MUST** equal the recorded `P_stealth` (sanity check). `p_stealth` is the Ed25519 private key of the stealth address.
 
-The view tag bounds scan cost: ~1/256 announcements survive the filter, after which one scalar-mult per known label index is performed. Implementations **SHOULD** treat the view-tag filter as the primary defense against scan-cost DoS (§8.4).
+The view tag bounds scan cost: ~1/256 announcements survive the filter, after which one scalar-mult per known label index is performed. Implementations **SHOULD** treat the view-tag filter as the primary defense against scan-cost DoS ([§8.4](#84-spam--dos)).
 
 ### 5.5 Announcement layer — the `pinboard` program
 
@@ -327,7 +364,7 @@ Note
   metadata      : metadata_len bytes
 ```
 
-Total 47–111 bytes. The Anchor 0.31 IDL camelCases the event name; log parsers **SHOULD** match the string `note`. The fixed-header + variable-tail layout is intentionally Merkle-tree-friendly for a future compressed-account migration (§11) without changing the bytes scanners parse.
+Total 47–111 bytes. The Anchor 0.31 IDL camelCases the event name; log parsers **SHOULD** match the string `note`. The fixed-header + variable-tail layout is intentionally Merkle-tree-friendly for a future compressed-account migration ([§11](#11-future-work)) without changing the bytes scanners parse.
 
 ### 5.6 Meta-address registry — the `registry` program
 
@@ -380,22 +417,22 @@ Validation, applied to `register` and `update`:
 
 The registry **MUST** accept only unlabeled meta-addresses (`label_index` is not on the wire; the payload has no such field). Publishing a labelled meta-address would leak relationship metadata and is therefore impossible by construction. The registry **MUST NOT** be required to validate that `b_spend` / `b_scan` are valid curve points (garbage fails at sender derivation, never risks funds). Each instruction emits a corresponding event (`MetaAddressRegistered` / `MetaAddressUpdated` / `MetaAddressClosed`) so indexers can maintain a `(registrant, scheme_id) → entry` map without `getProgramAccounts`.
 
-Sender prelude (OPTIONAL): given a recipient wallet `A`, look up `(A, 0x0001)`; on hit, decode the meta-address and proceed with §5.3; on miss, fall back to off-chain meta-address entry. The registry is an enhancement, never a hard dependency.
+Sender prelude (OPTIONAL): given a recipient wallet `A`, look up `(A, 0x0001)`; on hit, decode the meta-address and proceed with [§5.3](#53-stealth-address-derivation--sender); on miss, fall back to off-chain meta-address entry. The registry is an enhancement, never a hard dependency.
 
 ### 5.7 Sender transaction flows
 
-In v1 the sender **MUST** default to **decoupled mode** (§5.8): the on-chain transfer contains only the asset movement and any required account creation — no SLNT instruction — so it is indistinguishable from a normal transfer to a fresh address.
+In v1 the sender **MUST** default to **decoupled mode** ([§5.8](#58-announcement-modes)): the on-chain transfer contains only the asset movement and any required account creation — no SLNT instruction — so it is indistinguishable from a normal transfer to a fresh address.
 
 - **SOL:** `SystemProgram::transfer { to: P_stealth, lamports: amount + rent_buffer }`, where `rent_buffer` is the rent-exempt minimum (890,880 lamports) so the fresh system account is valid.
 - **SPL token:** create the recipient ATA for `(P_stealth, mint)` (sender pays ATA rent ≈ 2,039,280 lamports), then `spl_token::transfer` into it. The mint is necessarily visible on-chain; only the recipient *identity* is hidden, not the asset type.
-- **NFT (Metaplex / Token-2022):** same shape with the NFT mint, plus program-mandated extra accounts (token records, rule sets) for pNFTs and transfer-hook execution for Token-2022. Implementations **MUST** construct the full account set via the relevant SDK and **SHOULD** warn that a publicly-tied NFT can deanonymize the sender (§8.3).
+- **NFT (Metaplex / Token-2022):** same shape with the NFT mint, plus program-mandated extra accounts (token records, rule sets) for pNFTs and transfer-hook execution for Token-2022. Implementations **MUST** construct the full account set via the relevant SDK and **SHOULD** warn that a publicly-tied NFT can deanonymize the sender ([§8.3](#83-deanonymization-risks-and-required-mitigations)).
 
 ### 5.8 Announcement modes
 
 #### 5.8.1 Decoupled announce (default)
 
 1. The wallet computes `(P_stealth, R, view_tag, metadata)`.
-2. The wallet submits the asset-transfer tx (§5.7) — containing no SLNT instruction.
+2. The wallet submits the asset-transfer tx ([§5.7](#57-sender-transaction-flows)) — containing no SLNT instruction.
 3. The wallet submits `(scheme_id, R, view_tag, metadata)` to an announcement service, which publishes it on pinboard in a tx the service pays for.
 
 The service learns only the announcement tuple. Without `b_scan` it **cannot** determine the recipient, `P_stealth`, or the sender's identity.
@@ -427,7 +464,7 @@ A stealth address holds value but only the rent-exempt minimum in SOL, so it can
 
 **Close-to-relayer (critical privacy rule).** Rent reclaimed by closing the stealth account or ATA **MUST** be sent to the relayer (or to another stealth address the recipient controls), **never** to the recipient's main wallet — doing so would create a direct `stealth → main` link. Wallets **MUST** refuse to build a sweep whose close destination is the recipient's main wallet.
 
-**Stealth-to-stealth** is not a separate primitive: it is a sweep whose destination is a stealth address derived from another meta-address (§5.9 rules unchanged), preserving unlinkability across hops.
+**Stealth-to-stealth** is not a separate primitive: it is a sweep whose destination is a stealth address derived from another meta-address ([§5.9](#59-recipient-sweep) rules unchanged), preserving unlinkability across hops.
 
 ### 5.10 Discovery and scanning
 
@@ -439,8 +476,8 @@ A stealth address holds value but only the rent-exempt minimum in SOL, so it can
 
 Two independent axes:
 
-1. **Meta-address encoding version** (`version: u8`, §5.2.2) — describes the meta-address bytes. v1 = `0x01`.
-2. **Cryptographic scheme ID** (`scheme_id: u16`, §5.5) — describes the derivation suite. v1 = `0x0001` (Ed25519 spend, X25519 scan, SHA-256, BIP-352-style labels).
+1. **Meta-address encoding version** (`version: u8`, [§5.2.2](#522-meta-address-encoding)) — describes the meta-address bytes. v1 = `0x01`.
+2. **Cryptographic scheme ID** (`scheme_id: u16`, [§5.5](#55-announcement-layer--the-pinboard-program)) — describes the derivation suite. v1 = `0x0001` (Ed25519 spend, X25519 scan, SHA-256, BIP-352-style labels).
 
 | Field | Value | Meaning |
 |---|---|---|
@@ -474,8 +511,8 @@ SLNT introduces new programs and an off-chain key scheme; it changes no existing
 
 - **Sender transactions** are ordinary transfers; existing wallets, explorers, and programs interact with stealth addresses as with any other address.
 - **Registry is optional**; its absence degrades gracefully to off-chain meta-address sharing.
-- **Forward compatibility** is built in via the two version axes (§5.11). New schemes add a `scheme_id` and coexist; a new meta-address *encoding* (e.g., multi-curve cross-chain keys) requires a new immutable registry deployment, with clients trying the newest supported scheme first and falling back.
-- **Both key-derivation methods coexist** but describe distinct identities (§5.2.1). Introducing wallet-native Method 1 does not invalidate any existing Method-2 identity; a user simply has separate stealth identities under each method, recovered independently. Wallets adding Method 1 **SHOULD** offer Method-2 import so users can carry an existing identity across.
+- **Forward compatibility** is built in via the two version axes ([§5.11](#511-versioning-and-scheme-ids)). New schemes add a `scheme_id` and coexist; a new meta-address *encoding* (e.g., multi-curve cross-chain keys) requires a new immutable registry deployment, with clients trying the newest supported scheme first and falling back.
+- **Both key-derivation methods coexist** but describe distinct identities ([§5.2.1](#521-key-derivation)). Introducing wallet-native Method 1 does not invalidate any existing Method-2 identity; a user simply has separate stealth identities under each method, recovered independently. Wallets adding Method 1 **SHOULD** offer Method-2 import so users can carry an existing identity across.
 - **`register_on_behalf`** (gasless registration, the ERC-6538 `registerKeysOnBehalf` analog) is reserved: a future instruction can be added without altering the existing ones.
 
 ---
@@ -495,11 +532,11 @@ Amounts and asset types are visible on-chain. Sender anonymity is **not** provid
 
 ### 8.3 Deanonymization risks and required mitigations
 
-- **Rent-close link (recipient).** Closing a stealth account to the main wallet links them; wallets **MUST** enforce close-to-relayer (§5.9).
+- **Rent-close link (recipient).** Closing a stealth account to the main wallet links them; wallets **MUST** enforce close-to-relayer ([§5.9](#59-recipient-sweep)).
 - **NFT identifiability (sender/recipient).** A publicly-tied NFT is its own deanonymizer; wallets **MUST** warn before sending/sweeping such NFTs.
 - **Fee-payer clustering (sender).** Repeated stealth payments from one funding wallet are linkable to each other; wallets **SHOULD** advise dedicated funding wallets.
 - **Service correlation (sender).** Authenticating to an announcement service from a known identity lets the service link the sender to each `R` (not to the recipient).
-- **View-key scanner compromise (recipient).** A delegated scanner sees all incoming-payment metadata; it can never spend (§5.10). Use sparingly.
+- **View-key scanner compromise (recipient).** A delegated scanner sees all incoming-payment metadata; it can never spend ([§5.10](#510-discovery-and-scanning)). Use sparingly.
 - **Consolidation clustering (recipient).** Sweeping many stealth receipts to one destination creates a cluster point; recipients **SHOULD** vary sweep destinations or chain stealth-to-stealth.
 
 ### 8.4 Spam / DoS
@@ -508,9 +545,9 @@ Pinboard is permissionless, so an attacker can post garbage to inflate scan work
 
 ### 8.5 Key-derivation integrity
 
-Under **Method 2**, stealth identity recoverability depends entirely on deterministic Ed25519 signing of the canonical message (§5.2.1.2). Randomized signers **MUST NOT** be used. The canonical message warns the user that signing it elsewhere exposes scan ability; integrations **MUST** present it as a derivation step, not a generic authentication signature.
+Under **Method 2**, stealth identity recoverability depends entirely on deterministic Ed25519 signing of the canonical message ([§5.2.1.2](#5212-method-2--signed-canonical-message-portable-baseline)). Randomized signers **MUST NOT** be used. The canonical message warns the user that signing it elsewhere exposes scan ability; integrations **MUST** present it as a derivation step, not a generic authentication signature.
 
-Under **Method 1**, recoverability depends on the BIP-39 seed (as for all wallet keys) and on the wallet recording the derivation method and path. The SLNT scan node is a hardened derivation, so disclosing it (e.g., to a delegated scanner as `b_scan_raw`, §5.10) cannot be used to climb back to the parent seed or to the user's spending keys. Because the two methods produce different identities, a user who funds a Method-1 identity and later only has access to a Method-2 integration (or vice versa) will not see those funds; wallets **SHOULD** make the active method explicit and support exporting/importing it.
+Under **Method 1**, recoverability depends on the BIP-39 seed (as for all wallet keys) and on the wallet recording the derivation method and path. The SLNT scan node is a hardened derivation, so disclosing it (e.g., to a delegated scanner as `b_scan_raw`, [§5.10](#510-discovery-and-scanning)) cannot be used to climb back to the parent seed or to the user's spending keys. Because the two methods produce different identities, a user who funds a Method-1 identity and later only has access to a Method-2 integration (or vice versa) will not see those funds; wallets **SHOULD** make the active method explicit and support exporting/importing it.
 
 ---
 
@@ -522,9 +559,9 @@ The reference implementation lives in this repository and is **not** part of the
 - **`programs/registry`** — the meta-address registry (`register`, `update`, `close`, events). Deployed at `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2`.
 - **`crates/slnt-sdk`** — Rust SDK: canonical-message key derivation, bech32m meta-address encode/decode with labels, sender stealth-address derivation, recipient scan + spend-scalar reconstruction, stealth signing, and registry PDA / fetch helpers.
 
-Planned: a TypeScript wallet SDK, a reference indexer (§5.10), a reference announcement service (§5.8.4), and a `slnt` CLI.
+Planned: a TypeScript wallet SDK, a reference indexer ([§5.10](#510-discovery-and-scanning)), a reference announcement service ([§5.8.4](#584-announcement-service-http-protocol)), and a `slnt` CLI.
 
-Conformance: an implementation is SLNT-v1-conforming if it produces and consumes meta-addresses, announcements, and stealth addresses byte-compatible with §5, processes `scheme_id = 0x0001` / `version = 0x01`, supports self-scan via logs (§5.10), enforces the close-to-relayer rule (§5.9), and implements at least one key-derivation method (§5.2.1) — using Method 2 when it has no seed access, and enforcing the deterministic-signing requirement whenever Method 2 is offered.
+Conformance: an implementation is SLNT-v1-conforming if it produces and consumes meta-addresses, announcements, and stealth addresses byte-compatible with [§5](#5-specification), processes `scheme_id = 0x0001` / `version = 0x01`, supports self-scan via logs ([§5.10](#510-discovery-and-scanning)), enforces the close-to-relayer rule ([§5.9](#59-recipient-sweep)), and implements at least one key-derivation method ([§5.2.1](#521-key-derivation)) — using Method 2 when it has no seed access, and enforcing the deterministic-signing requirement whenever Method 2 is offered.
 
 ---
 
@@ -554,7 +591,7 @@ Cross-chain unified meta-addresses (new encoding `version`); post-quantum scheme
 4. **Encrypted-metadata standard.** Whether to standardize a memo scheme keyed by `S` (`slnt-v1-memo`) in v1.1.
 5. **SIMD track.** Whether and when to promote this sRFC to a formal SIMD.
 6. **HD derivation path (Method 1).** The path is `m/0x534C4E54'/501'/account'/0'` (spend) and `…/1'` (scan), with purpose `0x534C4E54'` = ASCII "SLNT". This convention should be registered (e.g. against the common wallet derivation-path registries) so every SLNT-native wallet derives identically; a mismatch would be as user-hostile as the existing CLI-vs-wallet path gap.
-7. **Encoding the derivation method.** Whether to allocate a `flags` bit (currently reserved `0x00`, and validated as such by the registry, §5.6.2) to record which method/path produced a meta-address, enabling automated cross-wallet recovery and import. Deferred for v1 because it changes registry validation; today the method is wallet-local state, like a derivation path.
+7. **Encoding the derivation method.** Whether to allocate a `flags` bit (currently reserved `0x00`, and validated as such by the registry, [§5.6.2](#562-instructions-and-validation)) to record which method/path produced a meta-address, enabling automated cross-wallet recovery and import. Deferred for v1 because it changes registry validation; today the method is wallet-local state, like a derivation path.
 
 ---
 
