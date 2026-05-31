@@ -1,4 +1,4 @@
-# SLNT — Silent Payments for Solana
+# S⬛l⬛nt — Silent Payments for Solana
 
 [![Status](https://img.shields.io/badge/status-experimental-orange)](docs/srfc/IMPLEMENTATION-STATUS.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
@@ -71,16 +71,19 @@ wire formats are defined end-to-end in the [sRFC](docs/srfc/0001-slnt-silent-pay
 | [`docs/srfc`](docs/srfc) | The sRFC, per-component design documents, and the implementation-status tracker. |
 | [`tests`](tests) | Anchor/Mocha on-chain integration tests. |
 | [`scripts`](scripts) | `build.sh` (program build) and `demo-lifecycle.sh` (end-to-end demo). |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Devnet/testnet deployment addresses, authorities, and operational notes. |
 
 ## On-chain programs
 
-| Program | ID (localnet & devnet) |
+| Program | ID (localnet, devnet, testnet) |
 |---|---|
 | `pinboard` | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` |
 | `registry` | `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` |
 
 The vanity prefixes are mnemonic: `SLNTP…` = **P**inboard, `SLNTR…` =
-**R**egistry.
+**R**egistry. Current devnet/testnet deployments are upgradeable while the
+protocol is unaudited; the canonical mainnet deployment is intended to be
+immutable. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Quickstart
 
@@ -147,11 +150,22 @@ npm run lint            # prettier over JS/TS
 ## Documentation
 
 - **[sRFC-0042 — the normative specification](docs/srfc/0001-slnt-silent-payments.md)**
+- [Deployment guide and current devnet/testnet programs](docs/DEPLOYMENT.md)
+- [Conformance test vectors](test-vectors.json)
 - [Per-component design documents](docs/srfc/design/README.md)
 - [Implementation status / conformance tracker](docs/srfc/IMPLEMENTATION-STATUS.md)
+- [Changelog](CHANGELOG.md)
 
 Protocol discussion happens in the sRFC thread; see
 [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose changes.
+
+## Community and governance
+
+- [Contributing guide](CONTRIBUTING.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
+- [Support policy](SUPPORT.md)
+- [Governance](GOVERNANCE.md)
+- [Security policy](SECURITY.md)
 
 ## Contributing
 

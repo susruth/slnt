@@ -473,7 +473,9 @@ pub struct StealthPayment {
 1. **Validate meta:** `version == 0x01` else `UnsupportedVersion`; `flags == 0` else
    `UnsupportedFlags`.
 2. **Decompress** `B_spend` (`CompressedEdwardsY(meta.b_spend).decompress()`), else
-   `InvalidPoint`. Reject small-order points (`is_small_order()`) → `InvalidPoint`.
+   `InvalidPoint`. Require the prime-order subgroup: reject small-order points
+   (`is_small_order()`) and points with a torsion component (`!is_torsion_free()`) →
+   `InvalidPoint`.
 3. **Ephemeral scalar:** `rng.fill_bytes(&mut r_bytes[32])`; `r =
    X25519StaticSecret::from(r_bytes)` (clamped internally); `R = X25519PublicKey::from(&r)`.
 4. **ECDH:** `S = r.diffie_hellman(B_scan)`. If `S` is all-zero → `InvalidSharedSecret`
@@ -487,7 +489,7 @@ pub struct StealthPayment {
 `compute_view_tag`, `compute_tweak`, and `shared_secret_is_zero` are `pub(crate)` and
 **shared verbatim** with the recipient, guaranteeing the two sides hash identical bytes.
 Tests: deterministic under a fixed RNG, distinct per call (fresh `r`), rejection of bad
-version/flags/small-order spend point/all-zero shared secret.
+version/flags/non-prime-order spend point/all-zero shared secret.
 
 ---
 
@@ -558,7 +560,7 @@ confirms a foreign scan key rejects >200/256 view tags.)
   yields a different recovered address than the real payment; `unrelated_recipient_does_not_match`
   runs 512 payments to recipient B and asserts recipient A never recovers B's address even
   on a collision.
-- **Sender-side hardening** (non-v1 flags/version, small-order spend point, zero shared
+- **Sender-side hardening** (non-v1 flags/version, non-prime-order spend point, zero shared
   secret) lives in `derive_payment` (§6).
 
 ---
@@ -835,7 +837,7 @@ Single `thiserror` enum, re-exported at the crate root.
 | Variant | When | `Display` summary |
 |---|---|---|
 | `Derivation` | `b_spend` reduces to zero, or HKDF expand fails (Method 2) | key derivation failed (anomalous scalar) |
-| `InvalidPoint` | `B_spend` won't decompress, or is small-order | invalid or non-spendable Ed25519 point |
+| `InvalidPoint` | `B_spend` won't decompress, is small-order, or has a torsion component | invalid or non-spendable Ed25519 point |
 | `InvalidSharedSecret` | X25519 ECDH yields all-zero `S` (sender side) | invalid X25519 shared secret (all zero) |
 | `MetaAddressEncode` | bech32m HRP parse / encode failure | meta-address encoding failed |
 | `MetaAddressDecode(String)` | bad checksum, wrong HRP, short payload, bad varint, trailing bytes | meta-address decoding failed: {0} |
@@ -876,14 +878,15 @@ exactly steps 1–3.
 
 ### 14.2 Rent buffers & sweep economics
 
-- SOL payments over-fund by `RENT_EXEMPT_MIN = 890_880` lamports so the fresh stealth system
-  account is valid; the recipient reclaims this on sweep.
+- SOL payments over-fund by at least the zero-data system-account rent minimum. The SDK's
+  offline helper defaults to `RENT_EXEMPT_MIN = 890_880` lamports, the current reference value;
+  networked wallets should query the cluster value before constructing production flows.
 - SPL payments cost the sender the stealth ATA's rent (created idempotently); the recipient
   reclaims it via `close_account` on sweep (to a non-main destination).
-- Sweeps require a relayer fee payer because the stealth account holds only the rent
-  minimum. The relayer is paid `relayer_take` (lamports for SOL sweeps, in-kind tokens for
-  SPL sweeps), bounded by `RelayerTakeTooLarge` (`take < balance` for SOL, `take <= amount`
-  for SPL).
+- Sweeps use a relayer fee payer to avoid funding stealth accounts for fees in ways that create
+  new linkage, and because SPL/NFT stealth owners may hold no usable SOL beyond rent. The relayer
+  is paid `relayer_take` (lamports for SOL sweeps, in-kind tokens for SPL sweeps), bounded by
+  `RelayerTakeTooLarge` (`take < balance` for SOL, `take <= amount` for SPL).
 
 ---
 
@@ -896,7 +899,7 @@ modules compiled in). Per-module matrix:
 |---|---|---|
 | `keys` | 21 | canonical-message byte-exactness & per-network distinctness; Method-2 determinism; **SLIP-0010 ed25519 KAT** (`m`, `m/0'`); HD determinism / sibling-path / account-index separation; meta-address round-trips (labeled + unlabeled); HRP / version / flags rejection; checked-derivation determinism guard; label tweak determinism & distinctness; LEB128 round-trip |
 | `recipient` | 5 | **sender↔recipient round-trip**; view-only delegated filter; labeled payment round-trip; unrelated-recipient false-positive bound; low-order `R` ignored |
-| `sender` | 5 | deterministic under fixed RNG; distinct per call; rejection of bad version/flags/small-order spend point/zero shared secret |
+| `sender` | 6 | deterministic under fixed RNG; distinct per call; rejection of bad version/flags/non-prime-order spend point/zero shared secret |
 | `sweep` | 6 | SOL split; main-wallet rejection (SOL+SPL); oversized take; stealth→stealth allowed; SPL transfer/pay/close tags |
 | `flows` | 4 | SOL rent buffer + overflow; SPL ATA-then-transfer; NFT = amount 1/decimals 0 |
 | `pinboard` | 7 | discriminator re-derivation (post/post_batch/Note); batch borsh round-trip; log-line parse paths |

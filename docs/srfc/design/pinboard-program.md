@@ -6,7 +6,7 @@
 | **Status** | Reference implementation |
 | **Spec** | sRFC-0042 (`docs/srfc/0001-slnt-silent-payments.md`), §5.5 |
 | **Program id** | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` |
-| **Immutability** | Immutable — deployed with **no upgrade authority**. The vanity prefix `SLNTP…` (`P` = **P**inboard) marks the canonical deployment for on-sight recognition. |
+| **Deployment status** | Live on devnet and testnet at the vanity address above, upgradeable under `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` while draft/unaudited. Canonical mainnet deployment is intended to be immutable. |
 
 Source: `programs/pinboard/src/lib.rs`. Client-side instruction builder and
 event parser: `crates/slnt-sdk/src/pinboard.rs` (see `rust-sdk.md`).
@@ -44,7 +44,7 @@ SLNT is merely its first consumer. Two design choices enforce this:
 - **`metadata` is opaque.** The protocol treats it as raw bytes (≤ 64). It MAY
   carry an implementation-defined encrypted memo, but pinboard never parses it.
 
-This is why the program can be immutable: it encodes no policy that could need
+This is why the canonical program can be immutable: it encodes no policy that could need
 revision. Policy lives in clients.
 
 ---
@@ -211,12 +211,13 @@ order.
 
 **Anchor 0.31 camelCase note.** Under Anchor 0.31 the generated IDL camelCases
 the event name, so high-level decoders (e.g. the TypeScript `EventParser` /
-`BorshCoder`) surface the event under the name **`note`**, not `Note`. Log
-parsers that match on the event name string SHOULD match `note`. The
-**on-the-wire discriminator is unaffected** — it is still computed from
-`"event:Note"` and remains `[40,182,5,151,115,43,27,97]`. Likewise the event's
-field names are camelCased in decoded objects (`schemeId`, `ephemeralPub`,
-`viewTag`, `metadata`), as seen in `tests/pinboard.ts`.
+`BorshCoder`) may surface the event under the name **`note`**, not `Note`.
+Low-level log parsers MUST match the 8-byte event discriminator, not the event
+name string or IDL casing. The **on-the-wire discriminator is unaffected** — it
+is still computed from `"event:Note"` and remains
+`[40,182,5,151,115,43,27,97]`. Likewise the event's field names are camelCased
+in decoded objects (`schemeId`, `ephemeralPub`, `viewTag`, `metadata`), as seen
+in `tests/pinboard.ts`.
 
 ---
 

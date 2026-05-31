@@ -222,12 +222,13 @@ conforming wallet **MUST** be able to scan by subscribing to pinboard logs
 `getTransaction`. That baseline is implemented directly by the SDK's
 `scan_stream` module (`rust-sdk.md`) — the same feed this indexer consumes.
 
-The indexer is the §5.10 **OPTIONAL** enhancement. Default RPCs prune logs within
-hours, so a recipient offline beyond that default log-retention window (≈ hours;
-§5.10 calls out ~24 h) cannot reconstruct the missed announcements from
-`logsSubscribe` alone. An indexer that has been continuously subscribed retains
-those announcements and serves them by slot range, closing the offline gap
-without the recipient running a full backfill. It is strictly additive: a wallet
+The indexer is the §5.10 **OPTIONAL** enhancement. RPC retention is
+provider-dependent and many public endpoints do not provide full historical logs,
+so a recipient offline beyond the provider's retention window cannot reconstruct
+the missed announcements from `logsSubscribe` alone. An indexer that has been
+continuously subscribed retains those announcements and serves them by slot
+range, closing the offline gap without the recipient running a full backfill. It
+is strictly additive: a wallet
 that only ever self-scans is fully conforming; the indexer just spares recipients
 the log-retention cliff.
 

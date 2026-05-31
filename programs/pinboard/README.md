@@ -73,8 +73,9 @@ N bytes  metadata (N = metadata length, 0..=64)
 
 Total event size: 47–111 bytes.
 
-Anchor 0.31's new IDL spec camelCases the event name. Clients parsing
-events should match on the string `note`.
+Anchor 0.31's IDL spec may camelCase the event name for high-level decoders.
+Low-level clients parsing logs should match the 8-byte `event:Note`
+discriminator, not an event-name string.
 
 ## Adopting pinboard for your protocol
 
@@ -98,9 +99,11 @@ Use the workspace build script (from the repo root):
 
 It runs three steps:
 
-1. `anchor build --no-idl -- --tools-version v1.54` — compile the .so
-2. `anchor idl build -p pinboard -o target/idl/pinboard.json`
-3. `anchor idl type target/idl/pinboard.json -o target/types/pinboard.ts`
+1. `anchor build --no-idl -- --tools-version v1.54` — compile the workspace programs
+2. `anchor idl build -p <program> -o target/idl/<program>.json`
+3. `anchor idl type target/idl/<program>.json -o target/types/<program>.ts`
+
+The IDL/type steps run for both `pinboard` and `registry`.
 
 The `--tools-version v1.54` override is required because Solana CLI 2.3.0
 ships with platform-tools v1.48 (cargo 1.84.0), which predates Rust
@@ -126,29 +129,27 @@ TypeScript test suite. Twelve tests cover the spec's requirements for §6
 
 ## Deploy
 
-The program is intended to be deployed with **no upgrade authority**, so
-no party can alter the on-chain primitive after launch. After deploy:
+Devnet and testnet deployments are currently **upgradeable** while SLNT is
+unaudited and the sRFC is still draft. The canonical mainnet deployment is
+intended to be deployed with **no upgrade authority**, so no party can alter the
+on-chain primitive after launch. See the repo-level
+[`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) for the current deployments,
+authorities, and signatures.
 
 ```bash
 # Deploy to devnet (preserves upgrade authority — for testing only)
 anchor deploy --provider.cluster devnet
 
-# Deploy to mainnet and immediately disable upgrades
+# Deploy to mainnet and immediately disable upgrades after final review
 anchor deploy --provider.cluster mainnet
-solana program set-upgrade-authority \
-  <PROGRAM_ID> \
-  --new-upgrade-authority none \
-  --skip-new-upgrade-authority-signer-check
+solana program set-upgrade-authority <PROGRAM_ID> --final --url mainnet-beta
 ```
-
-The canonical mainnet program ID will be published in this README once a
-final deployment is made. A vanity prefix is planned for the production
-deploy.
 
 ## Program ID
 
-| Network | Program ID |
+| Network | Program ID | Upgrade authority |
 |---|---|
-| Localnet (dev) | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (keypair at `target/deploy/pinboard-keypair.json`) |
-| Devnet | TBD — populated on first devnet deployment |
-| Mainnet | TBD — vanity-grinded prefix, populated on first mainnet deployment |
+| Localnet (dev) | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (keypair at `target/deploy/pinboard-keypair.json`) | local deployer |
+| Devnet | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` | `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` |
+| Testnet | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` | `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` |
+| Mainnet | TBD — final canonical deployment | none, after renounce |

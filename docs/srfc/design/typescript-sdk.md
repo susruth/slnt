@@ -295,7 +295,8 @@ from a CSPRNG in production. The clamp on `r` happens inside `x25519.getPublicKe
 matching Rust's `StaticSecret::from`.
 
 > **Validation (parity with Rust).** `derivePayment` validates `version == 0x01` and `flags == 0x00`,
-> decompresses `B_spend` and rejects small-order (torsion) points, and aborts on an all-zero /
+> decompresses `B_spend` and requires the prime-order subgroup, rejecting small-order points and
+> points with a torsion component, and aborts on an all-zero /
 > non-contributory shared secret — throwing `SlntError` with the matching `code`. `@noble` rejects
 > low-order scan keys at the ECDH step, which is mapped to `InvalidSharedSecret` (§5.3).
 
@@ -421,7 +422,7 @@ reference. Module map:
 |---|---|---|
 | `keys.rs` — Method 1 HD (`derive_stealth_keys_hd`), Method 2, guard, codec, labels | `keys.ts` — `deriveStealthKeysHd`, `deriveStealthKeysFromSignature`, `deriveStealthKeysChecked`, codec, labels | HD derivation pinned to Rust by a cross-impl KAT (`derive-hd` vectors) |
 | `error.rs` — `SlntError` | `errors.ts` — `SlntError` class + `code` | code names mirror the Rust variants |
-| `sender.rs` (incl. version/flags/small-order/zero-secret hardening) | `sender.ts` | same rejections; `@noble` rejects low-order scan keys at ECDH, mapped to `InvalidSharedSecret` |
+| `sender.rs` (incl. version/flags/non-prime-order/zero-secret hardening) | `sender.ts` | same rejections; `@noble` rejects low-order scan keys at ECDH, mapped to `InvalidSharedSecret` |
 | `recipient.rs` (scan, view-only, hardening) | `recipient.ts` | hostile notes skipped, not thrown |
 | `stealth_signing.rs` — scalar-mode RFC 8032 | `signing.ts` — `StealthSigningKey` | signatures verify against a standard Ed25519 verifier |
 | `pinboard.rs` | `pinboard.ts` | discriminators computed via SHA-256, asserted equal to Rust |

@@ -45,6 +45,16 @@ solana program show SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2 --url devnet
 # Authority: 78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR  → upgradeable (not final)
 ```
 
+Run a live smoke test after deploy or upgrade. This sends one `pinboard.post`
+transaction and registers/updates the deployer's `registry` PDA on the selected
+cluster:
+
+```bash
+cd clients/typescript
+npx ts-node scripts/onchain-smoke.ts devnet
+npx ts-node scripts/onchain-smoke.ts testnet
+```
+
 ## The deployer wallet
 
 The wallet that pays deploy fees + rent and becomes the upgrade authority is the
@@ -121,3 +131,4 @@ solana program set-upgrade-authority SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2
 |---|---|---|
 | 2026-05-31 | devnet | Initial deploy of `pinboard` + `registry` (upgradeable). |
 | 2026-05-31 | testnet | Initial deploy of `pinboard` + `registry` (upgradeable). |
+| 2026-05-31 | devnet/testnet | Live smoke tests passed for `pinboard.post` and `registry` write/read. |
