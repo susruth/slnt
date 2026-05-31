@@ -3,7 +3,7 @@ name = "slnt-indexer"
 version = "0.1.0"
 edition = "2021"
 description = "Reference announcement indexer for Slnt (sRFC-0042 §5.10)"
-license = "Apache-2.0"
+license = "MIT"
 
 [[bin]]
 name = "slnt-indexer"

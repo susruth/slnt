@@ -1,10 +1,11 @@
 # SLNT — Deployment
 
 How the on-chain programs (`pinboard`, `registry`) are built and deployed, and
-the addresses/authorities of the current deployments. The programs are intended
-to be **immutable** on a canonical mainnet deploy (sRFC-0042 §5.5/§5.6,
-[`SECURITY.md`](../SECURITY.md)); the current devnet/testnet deployments are kept
-**upgradeable** until the programs are audited and the sRFC is accepted.
+the addresses/authorities of the current deployments. The current
+devnet/testnet deployments are kept **upgradeable** while SLNT v1 is draft and
+unaudited; the canonical v1 deployment is intended to become **immutable** as
+soon as SLNT v1 is finalized and independently audited (sRFC-0042 §5.5/§5.6,
+[`SECURITY.md`](../SECURITY.md)).
 
 ## Canonical program IDs (vanity)
 
@@ -114,11 +115,12 @@ solana program extend <PROGRAM_ID> <ADDITIONAL_BYTES> --url <cluster>
 solana program deploy  <...> --url <cluster>
 ```
 
-## Making it immutable (post-audit, post-sRFC-acceptance)
+## Making it immutable (after v1 finalization and audit)
 
-Once the programs are audited and the sRFC is accepted, renounce the upgrade
-authority. **Irreversible** — do it only on a deploy you are keeping, and note
-the program-data account rent becomes unrecoverable:
+As soon as SLNT v1 is finalized and independently audited, renounce the upgrade
+authority for the canonical v1 deployment. **Irreversible** — do it only on a
+deploy you are keeping, and note the program-data account rent becomes
+unrecoverable:
 
 ```bash
 solana program set-upgrade-authority SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2 --final --url <cluster>

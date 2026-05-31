@@ -1,7 +1,7 @@
 # S⬛l⬛nt — Silent Payments for Solana
 
 [![Status](https://img.shields.io/badge/status-experimental-orange)](docs/srfc/IMPLEMENTATION-STATUS.md)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Anchor](https://img.shields.io/badge/Anchor-0.31-9945FF)](https://www.anchor-lang.com/)
 [![Spec](https://img.shields.io/badge/spec-sRFC--0042-informational)](docs/srfc/0001-slnt-silent-payments.md)
 
@@ -25,9 +25,10 @@ which is normative. This repository is the reference implementation.
 
 > [!WARNING]
 > **Experimental and unaudited.** SLNT has not been security-audited. The
-> on-chain programs are intended to be deployed immutably, so bugs cannot be
-> patched after launch. Do not use with funds you cannot afford to lose. See
-> [SECURITY.md](SECURITY.md).
+> devnet/testnet programs remain upgradeable while v1 is draft and unaudited,
+> but the canonical v1 deployment is intended to become immutable as soon as v1
+> is finalized and independently audited. Do not use with funds you cannot
+> afford to lose. See [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -81,9 +82,10 @@ wire formats are defined end-to-end in the [sRFC](docs/srfc/0001-slnt-silent-pay
 | `registry` | `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` |
 
 The vanity prefixes are mnemonic: `SLNTP…` = **P**inboard, `SLNTR…` =
-**R**egistry. Current devnet/testnet deployments are upgradeable while the
-protocol is unaudited; the canonical mainnet deployment is intended to be
-immutable. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+**R**egistry. Current devnet/testnet deployments are upgradeable while v1 is
+draft and unaudited; the canonical v1 deployment is intended to become
+immutable as soon as v1 is finalized and independently audited. See
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Quickstart
 
@@ -181,4 +183,4 @@ process in **[SECURITY.md](SECURITY.md)** rather than opening a public issue.
 
 ## License
 
-Licensed under the [Apache License, Version 2.0](LICENSE).
+Licensed under the [MIT License](LICENSE).

@@ -62,7 +62,7 @@ SLNT defines a **silent-payment** (stealth-address) standard for Solana. A recip
 - no observer without the recipient's scan key can link a stealth address to the meta-address, nor link two payments to the same meta-address; and
 - in the default (decoupled) mode, the payment transaction is **indistinguishable** from an ordinary transfer to a fresh address.
 
-SLNT is the Solana analog of Bitcoin Silent Payments (BIP-352) and Ethereum Stealth Addresses (ERC-5564 / ERC-6538), re-grounded on Solana's account model, Ed25519/X25519 key types, and rent/relayer economics. It specifies two permissionless on-chain programs intended to be immutable once canonical — an **announcement** program (`pinboard`) and a **meta-address registry** (`registry`) — plus the off-chain cryptography that wallets implement.
+SLNT is the Solana analog of Bitcoin Silent Payments (BIP-352) and Ethereum Stealth Addresses (ERC-5564 / ERC-6538), re-grounded on Solana's account model, Ed25519/X25519 key types, and rent/relayer economics. It specifies two permissionless on-chain programs intended to become immutable as soon as SLNT v1 is finalized and independently audited — an **announcement** program (`pinboard`) and a **meta-address registry** (`registry`) — plus the off-chain cryptography that wallets implement.
 
 This document is normative and self-contained: a conforming SLNT v1 implementation can be built from this sRFC alone.
 
@@ -327,7 +327,7 @@ The view tag bounds scan cost: ~1/256 announcements survive the filter, after wh
 
 SLNT announcements are published on **pinboard**, a permissionless, stateless Solana program that emits opaque tagged notes as Anchor events. Pinboard is generic (not SLNT-specific) and is SLNT's first consumer. It is the Solana analog of the ERC-5564 `Announcer`.
 
-**Reference program ID:** `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2`. The vanity prefix `SLNTP…` — **P** for **p**inboard — is the candidate canonical address; final mainnet deployment and upgrade-authority renounce procedure are tracked in [§12](#12-open-questions).
+**Reference program ID:** `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2`. The vanity prefix `SLNTP…` — **P** for **p**inboard — is the candidate canonical address; the canonical v1 deployment is intended to renounce upgrade authority as soon as v1 is finalized and independently audited. Final mainnet deployment and renounce procedure are tracked in [§12](#12-open-questions).
 
 #### 5.5.1 Instructions
 
@@ -374,7 +374,7 @@ Total 47–111 bytes. Log parsers **MUST** match the 8-byte Anchor event discrim
 
 The **registry** maps a main Solana wallet pubkey to its SLNT meta-address, closing the discovery gap. It is the Solana analog of ERC-6538. It is **OPTIONAL**: senders may always share meta-addresses off-chain (QR, profile, DM). It is deployed independently of pinboard and shares no code or state.
 
-**Reference program ID:** `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2`. The vanity prefix `SLNTR…` — **R** for **r**egistry — is the candidate canonical address; final mainnet deployment and upgrade-authority renounce procedure are tracked in [§12](#12-open-questions). The registry has no admin instruction path.
+**Reference program ID:** `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2`. The vanity prefix `SLNTR…` — **R** for **r**egistry — is the candidate canonical address; the canonical v1 deployment is intended to renounce upgrade authority as soon as v1 is finalized and independently audited. Final mainnet deployment and renounce procedure are tracked in [§12](#12-open-questions). The registry has no admin instruction path.
 
 #### 5.6.1 PDA and account
 
@@ -565,7 +565,7 @@ The reference implementation lives in the implementation repository, [`github.co
 
 Conformance vectors live in [`test-vectors.json`](https://github.com/susruth/slnt/blob/main/test-vectors.json). They cover the v1 key-derivation methods, labels, sender derivation, recipient scanning, pinboard event bytes, registry wire bytes, and invalid hardening cases.
 
-Devnet and testnet reference deployments are live at the program IDs below and remain upgradeable while this draft is unaudited. Mainnet deployment and upgrade-authority renounce remain open questions ([§12](#12-open-questions)).
+Devnet and testnet reference deployments are live at the program IDs below and remain upgradeable while v1 is draft and unaudited. The canonical v1 deployment is intended to renounce upgrade authority as soon as v1 is finalized and independently audited; final mainnet deployment and renounce procedure remain open questions ([§12](#12-open-questions)).
 
 On-chain programs:
 
@@ -593,8 +593,8 @@ This sRFC is the **normative** standard: a conforming implementation can be buil
 
 | Component | Design document | Kind | Primary sections |
 |---|---|---|---|
-| `pinboard` program | [`design/pinboard-program.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/pinboard-program.md) | On-chain (intended immutable) | §5.5 |
-| `registry` program | [`design/registry-program.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/registry-program.md) | On-chain (intended immutable, optional) | §5.6 |
+| `pinboard` program | [`design/pinboard-program.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/pinboard-program.md) | On-chain (immutable after v1 finalization and audit) | §5.5 |
+| `registry` program | [`design/registry-program.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/registry-program.md) | On-chain (immutable after v1 finalization and audit, optional) | §5.6 |
 | `slnt-sdk` (Rust) | [`design/rust-sdk.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/rust-sdk.md) | Client library — **cryptographic reference** | §5.2–§5.10 |
 | `@slnt/sdk` (TypeScript) | [`design/typescript-sdk.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/typescript-sdk.md) | Client library — byte-compatible with the Rust SDK | §5.2–§5.4, §5.10 |
 | `slnt` CLI | [`design/cli.md`](https://github.com/susruth/slnt/blob/main/docs/srfc/design/cli.md) | Offline command-line tool | §9 |
@@ -613,7 +613,7 @@ Cross-chain unified meta-addresses (new encoding `version`); post-quantum scheme
 
 ## 12. Open Questions
 
-1. **Canonical deploy authority.** Both programs are intended to be immutable (no upgrade authority). The candidate reference deployments use vanity prefixes for on-sight recognition under the shared `SLNT` brand: `SLNTP…` for pinboard (**P**) and `SLNTR…` for registry (**R**). Final mainnet addresses and the renounce procedure are TBD.
+1. **Canonical deploy authority.** Both programs are intended to become immutable (no upgrade authority) as soon as SLNT v1 is finalized and independently audited. The candidate reference deployments use vanity prefixes for on-sight recognition under the shared `SLNT` brand: `SLNTP…` for pinboard (**P**) and `SLNTR…` for registry (**R**). Final mainnet addresses and the renounce procedure are TBD.
 2. **HRP registration.** The bech32m HRP `slnt` should be registered against SLIP-0173 to avoid collision.
 3. **Relayer discovery/pricing.** Whether v1.1 should standardize a relayer quote RPC.
 4. **Encrypted-metadata standard.** Whether to standardize a memo scheme keyed by `S` (`slnt-v1-memo`) in v1.1.
@@ -633,4 +633,4 @@ Amount privacy; asset-type privacy; sender anonymity; cross-chain meta-addresses
 
 ## Copyright
 
-This document is placed under Apache-2.0, consistent with the [`github.com/susruth/slnt`](https://github.com/susruth/slnt) repository license.
+This document is placed under the MIT License, consistent with the [`github.com/susruth/slnt`](https://github.com/susruth/slnt) repository license.

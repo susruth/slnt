@@ -5,7 +5,7 @@
 | **Component** | `slnt-sdk` (Rust crate, `crates/slnt-sdk`) |
 | **Status** | Reference implementation |
 | **Spec** | sRFC-0042 §5 (normative) |
-| **Crate version** | `0.1.0`, edition 2021, license Apache-2.0 |
+| **Crate version** | `0.1.0`, edition 2021, license MIT |
 | **Library name** | `slnt_sdk` (`src/lib.rs`) |
 
 This is the canonical, byte-level reference for all SLNT off-chain cryptography:

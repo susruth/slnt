@@ -3,7 +3,7 @@ name = "slnt-sdk"
 version = "0.1.0"
 edition = "2021"
 description = "Rust SDK for the Slnt stealth-payment protocol on Solana (v1)"
-license = "Apache-2.0"
+license = "MIT"
 
 [lib]
 name = "slnt_sdk"

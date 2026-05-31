@@ -6,7 +6,7 @@
 | **Status** | Implemented; OPTIONAL component of SLNT |
 | **Spec** | sRFC-0042 §5.6 (normative) |
 | **Program id** | `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` |
-| **Deployment status** | Live on devnet and testnet at the vanity address above, upgradeable under `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` while draft/unaudited. Canonical mainnet deployment is intended to have no upgrade authority. |
+| **Deployment status** | Live on devnet and testnet at the vanity address above, upgradeable under `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` while v1 is draft and unaudited. Canonical v1 deployment is intended to have no upgrade authority as soon as v1 is finalized and independently audited. |
 
 This document is the byte-level design reference for the `registry` program. It is a sibling of `pinboard-program.md` (the announcement layer) and `rust-sdk.md` (the client SDK). The registry is **OPTIONAL**: senders may always exchange meta-addresses off-chain (QR, profile, DM). It exists purely to close the *discovery gap*.
 
@@ -180,7 +180,15 @@ SDK: `build_close_instruction(...)` → accounts `[registrant (signer, writable)
 
 ### Why `version` is pinned to `0x01`
 
-For the canonical mainnet deployment, this program is intended to be **immutable** — there should be no upgrade authority that could later teach it to interpret a `version` byte it does not understand. Accepting any version it cannot validate would let a registrant store an entry that this code can never round-trip correctly. Pinning `version == 0x01` keeps the on-chain encoding and this binary in lock-step for the life of the deployment. A future meta-address encoding does not patch this program; it ships as a **new immutable deployment** (see §8).
+For the canonical v1 deployment, this program is intended to become
+**immutable** as soon as v1 is finalized and independently audited — there
+should be no upgrade authority that could later teach it to interpret a
+`version` byte it does not understand. Accepting any version it cannot validate
+would let a registrant store an entry that this code can never round-trip
+correctly.
+Pinning `version == 0x01` keeps the on-chain encoding and this binary in
+lock-step for the life of the deployment. A future meta-address encoding does
+not patch this program; it ships as a **new immutable deployment** (see §8).
 
 ### Why curve-point validation is intentionally omitted
 
@@ -245,7 +253,7 @@ Because rent is fully reclaimable on close, the steady-state cost of maintaining
 
 - **`register_on_behalf` reserved.** A delegated-registration path (a third party paying rent / submitting on behalf of a registrant) is reserved for a future version. It is intentionally **not** in this v1 deployment; the current model is strictly registrant-self-service.
 - **New `scheme_id` coexists.** Because `scheme_id` is a PDA seed, a new scheme simply occupies a new, independent PDA. Existing `0x0001` entries are untouched, and a single registrant can hold multiple schemes simultaneously (the `different scheme_ids … coexist` test exercises this).
-- **New encoding ⇒ new deployment.** Because `version` is pinned to `0x01` and the canonical deployment is intended to have no upgrade authority, a new meta-address encoding cannot be retrofitted into this program. It ships as a **new immutable deployment** with its own program id, run side-by-side. This is the deliberate cost of immutability: no admin can change the rules out from under registrants.
+- **New encoding ⇒ new deployment.** Because `version` is pinned to `0x01` and the canonical v1 deployment is intended to have no upgrade authority after finalization and audit, a new meta-address encoding cannot be retrofitted into this program. It ships as a **new immutable deployment** with its own program id, run side-by-side. This is the deliberate cost of immutability: no admin can change the rules out from under registrants.
 
 ---
 

@@ -14,8 +14,8 @@ Each document maps to a single deployable or publishable component.
 
 | Document | Component | Spec | Deployment |
 |---|---|---|---|
-| [pinboard-program.md](pinboard-program.md) | Announcement program — permissionless, stateless; emits opaque tagged `Note` events. | §5.5 | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (devnet/testnet upgradeable; mainnet intended immutable) |
-| [registry-program.md](registry-program.md) | Meta-address registry — maps a wallet pubkey → meta-address (ERC-6538 analog); optional. | §5.6 | `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (devnet/testnet upgradeable; mainnet intended immutable) |
+| [pinboard-program.md](pinboard-program.md) | Announcement program — permissionless, stateless; emits opaque tagged `Note` events. | §5.5 | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (devnet/testnet upgradeable; v1 immutable after finalization and audit) |
+| [registry-program.md](registry-program.md) | Meta-address registry — maps a wallet pubkey → meta-address (ERC-6538 analog); optional. | §5.6 | `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (devnet/testnet upgradeable; v1 immutable after finalization and audit) |
 
 ## Client libraries
 

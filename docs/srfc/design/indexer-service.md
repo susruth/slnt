@@ -6,7 +6,7 @@
 | **Status** | Reference implementation |
 | **Spec** | sRFC-0042 (`docs/srfc/0001-slnt-silent-payments.md`), §5.10 |
 | **Binary** | `slnt-indexer` (`src/main.rs`) |
-| **Crate version** | `0.1.0`, edition 2021, license Apache-2.0 |
+| **Crate version** | `0.1.0`, edition 2021, license MIT |
 
 The indexer is the **OPTIONAL** discovery enhancement of sRFC-0042 §5.10. It
 subscribes to pinboard `Note` events, retains them in memory, and serves them

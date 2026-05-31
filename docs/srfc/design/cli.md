@@ -6,7 +6,7 @@
 | **Status** | Reference implementation |
 | **Spec** | sRFC-0042 §5 (normative) |
 | **Binary name** | `slnt` (`src/main.rs`) |
-| **Crate version** | `0.1.0`, edition 2021, license Apache-2.0 |
+| **Crate version** | `0.1.0`, edition 2021, license MIT |
 
 `slnt` is a thin command-line wrapper over the Rust SDK (`rust-sdk.md`). It exposes
 the protocol's **offline, pure** operations — key derivation, meta-address

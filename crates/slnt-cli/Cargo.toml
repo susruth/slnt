@@ -3,7 +3,7 @@ name = "slnt-cli"
 version = "0.1.0"
 edition = "2021"
 description = "Command-line tools for the Slnt stealth-payment protocol (v1)"
-license = "Apache-2.0"
+license = "MIT"
 
 [[bin]]
 name = "slnt"

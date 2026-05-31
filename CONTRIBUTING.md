@@ -114,5 +114,5 @@ Use the GitHub issue templates. For anything with security or privacy impact,
 ## License of contributions
 
 Unless you state otherwise, contributions you submit are licensed under the
-project's [Apache License 2.0](LICENSE). Per the Apache-2.0 grant, you confirm
+project's [MIT License](LICENSE). By contributing, you confirm
 you have the right to contribute the work under that license.

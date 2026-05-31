@@ -6,7 +6,7 @@
 | **Status** | Reference implementation |
 | **Spec** | sRFC-0042 (`docs/srfc/0001-slnt-silent-payments.md`), §5.5 |
 | **Program id** | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` |
-| **Deployment status** | Live on devnet and testnet at the vanity address above, upgradeable under `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` while draft/unaudited. Canonical mainnet deployment is intended to be immutable. |
+| **Deployment status** | Live on devnet and testnet at the vanity address above, upgradeable under `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` while v1 is draft and unaudited. Canonical v1 deployment is intended to become immutable as soon as v1 is finalized and independently audited. |
 
 Source: `programs/pinboard/src/lib.rs`. Client-side instruction builder and
 event parser: `crates/slnt-sdk/src/pinboard.rs` (see `rust-sdk.md`).
@@ -44,8 +44,9 @@ SLNT is merely its first consumer. Two design choices enforce this:
 - **`metadata` is opaque.** The protocol treats it as raw bytes (≤ 64). It MAY
   carry an implementation-defined encrypted memo, but pinboard never parses it.
 
-This is why the canonical program can be immutable: it encodes no policy that could need
-revision. Policy lives in clients.
+This is why the canonical program can become immutable after v1 finalization
+and audit: it encodes no policy that could need revision. Policy lives in
+clients.
 
 ---
 

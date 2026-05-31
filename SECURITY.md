@@ -2,11 +2,13 @@
 
 ## Status
 
-SLNT is **experimental and has not been independently audited.** The on-chain
-programs are designed to be deployed **immutably** (no upgrade authority), so
-defects cannot be patched after a canonical deployment — they require a new
-deployment and a coordinated migration. Treat all current deployments as
-testing-only and do not secure funds you cannot afford to lose.
+SLNT is **experimental and has not been independently audited.** The current
+devnet/testnet programs remain upgradeable while v1 is draft and unaudited, but
+the canonical v1 deployment is intended to become **immutable** (no upgrade
+authority) as soon as v1 is finalized and independently audited. After that
+point, defects cannot be patched in place; they require a new deployment and a
+coordinated migration. Treat all current deployments as testing-only and do not
+secure funds you cannot afford to lose.
 
 ## Reporting a vulnerability
 

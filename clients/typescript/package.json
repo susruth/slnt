@@ -2,7 +2,7 @@
   "name": "@slnt/sdk",
   "version": "0.1.0",
   "description": "TypeScript wallet SDK for the Slnt stealth-payment protocol (sRFC-0042)",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "src/index.ts",
   "scripts": {
     "test": "mocha",

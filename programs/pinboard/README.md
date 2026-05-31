@@ -113,8 +113,9 @@ Platform-tools v1.54 ships cargo 1.89, which supports edition2024.
 
 Outputs:
 - `target/deploy/pinboard.so` — the program binary
-- `target/idl/pinboard.json` — the IDL consumed by clients
-- `target/types/pinboard.ts` — TypeScript types for the IDL
+- `target/deploy/registry.so` — the sibling registry program binary
+- `target/idl/{pinboard,registry}.json` — IDLs consumed by clients
+- `target/types/{pinboard,registry}.ts` — TypeScript types for the IDLs
 
 ## Test
 
@@ -129,10 +130,10 @@ TypeScript test suite. Twelve tests cover the spec's requirements for §6
 
 ## Deploy
 
-Devnet and testnet deployments are currently **upgradeable** while SLNT is
-unaudited and the sRFC is still draft. The canonical mainnet deployment is
-intended to be deployed with **no upgrade authority**, so no party can alter the
-on-chain primitive after launch. See the repo-level
+Devnet and testnet deployments are currently **upgradeable** while SLNT v1 is
+draft and unaudited. As soon as v1 is finalized and independently audited, the
+canonical v1 deployment is intended to have **no upgrade authority**, so no
+party can alter the on-chain primitive after that point. See the repo-level
 [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) for the current deployments,
 authorities, and signatures.
 
@@ -140,7 +141,7 @@ authorities, and signatures.
 # Deploy to devnet (preserves upgrade authority — for testing only)
 anchor deploy --provider.cluster devnet
 
-# Deploy to mainnet and immediately disable upgrades after final review
+# Deploy canonical v1 and disable upgrades after v1 finalization + audit
 anchor deploy --provider.cluster mainnet
 solana program set-upgrade-authority <PROGRAM_ID> --final --url mainnet-beta
 ```
@@ -152,4 +153,4 @@ solana program set-upgrade-authority <PROGRAM_ID> --final --url mainnet-beta
 | Localnet (dev) | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (keypair at `target/deploy/pinboard-keypair.json`) | local deployer |
 | Devnet | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` | `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` |
 | Testnet | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` | `78ZkB1rxMk46Nddff3WJCXbML7fGXhX2tkXUgPhfZ7mR` |
-| Mainnet | TBD — final canonical deployment | none, after renounce |
+| Mainnet | TBD — final canonical deployment | none, after v1 finalization + audit |
