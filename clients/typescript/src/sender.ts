@@ -53,7 +53,7 @@ export function derivePayment(meta: MetaAddress, randomBytes32: Uint8Array): Ste
     throw new SlntError("UnsupportedFlags", `0x${meta.flags.toString(16)}`);
   }
 
-  // Decompress B_spend_effective and reject small-order (torsion) points.
+  // Decompress B_spend_effective and require the prime-order subgroup.
   let bSpendPoint;
   try {
     bSpendPoint = ed25519.ExtendedPoint.fromHex(meta.bSpend);
@@ -62,6 +62,9 @@ export function derivePayment(meta: MetaAddress, randomBytes32: Uint8Array): Ste
   }
   if (bSpendPoint.multiplyUnsafe(8n).equals(ed25519.ExtendedPoint.ZERO)) {
     throw new SlntError("InvalidPoint", "B_spend is a small-order point");
+  }
+  if (!bSpendPoint.isTorsionFree()) {
+    throw new SlntError("InvalidPoint", "B_spend is not in the prime-order subgroup");
   }
 
   const ephemeralPub = x25519.getPublicKey(randomBytes32);

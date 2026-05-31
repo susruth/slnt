@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { hexToBytes } from "@noble/hashes/utils";
-import { ed25519 } from "@noble/curves/ed25519";
+import { ed25519, ED25519_TORSION_SUBGROUP } from "@noble/curves/ed25519";
 import {
   deriveStealthKeysFromSignature,
   deriveStealthKeysChecked,
@@ -87,6 +87,17 @@ describe("slnt TS SDK — crypto core parity", () => {
       // The Ed25519 identity point (compressed) is small-order.
       const identity = ed25519.ExtendedPoint.ZERO.toRawBytes();
       expect(() => derivePayment({ ...meta, bSpend: identity }, r))
+        .to.throw(SlntError)
+        .with.property("code", "InvalidPoint");
+    });
+
+    it("rejects a spend point with a torsion component", () => {
+      const torsion = ed25519.ExtendedPoint.fromHex(hexToBytes(ED25519_TORSION_SUBGROUP[1]));
+      const badSpend = ed25519.ExtendedPoint.fromHex(meta.bSpend).add(torsion).toRawBytes();
+      const badPoint = ed25519.ExtendedPoint.fromHex(badSpend);
+      expect(badPoint.isSmallOrder()).to.equal(false);
+      expect(badPoint.isTorsionFree()).to.equal(false);
+      expect(() => derivePayment({ ...meta, bSpend: badSpend }, r))
         .to.throw(SlntError)
         .with.property("code", "InvalidPoint");
     });

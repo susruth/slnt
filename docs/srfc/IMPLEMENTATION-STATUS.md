@@ -31,7 +31,8 @@ for a conforming v1 implementation; **OPTIONAL** items are enhancements.
 - [x] **A1** Network-parameterized canonical message: `Network` enum + `canonical_message()` for Mainnet/Devnet/Testnet (§5.2.1.2) ✅
 - [x] **A2** Method 1 — wallet-native HD derivation, SLIP-0010 ed25519, `m/0x534C4E54'/501'/account'/{0',1'}` (§5.2.1.1); verified against official SLIP-0010 ed25519 vector ✅
 - [x] **A3** Labels end-to-end: `label_tweak_scalar`, `MetaAddress::for_label`, `scan_note_candidates` over known label indices (§5.2.3, §5.4) ✅
-- [x] **A4** Meta-address / ECDH hardening: reject non-v1 flags, small-order Ed25519 spend keys, and all-zero X25519 shared secrets (§5.2.2, §5.3, §5.4, §8.4) ✅
+- [x] **A4** Meta-address / ECDH hardening: reject non-v1 flags, non-prime-order Ed25519 spend keys, and all-zero X25519 shared secrets (§5.2.2, §5.3, §5.4, §8.4) ✅
+- [x] **A5** Public conformance vectors: `test-vectors.json` covers Method 1, Method 2, labels, sender derivation, recipient scanning, pinboard bytes, registry bytes, and invalid hardening cases ✅
 
 ### Phase B — SDK instruction builders
 - [x] **B1** `build_post_batch_instruction` + `NoteEntry` (§5.5.1) ✅

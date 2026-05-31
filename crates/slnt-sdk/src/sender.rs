@@ -42,7 +42,7 @@ pub fn derive_payment(
     let b_spend = b_spend_compressed
         .decompress()
         .ok_or(SlntError::InvalidPoint)?;
-    if b_spend.is_small_order() {
+    if b_spend.is_small_order() || !b_spend.is_torsion_free() {
         return Err(SlntError::InvalidPoint);
     }
 
@@ -109,6 +109,7 @@ pub(crate) fn compute_tweak(s: &[u8], view_tag: u8) -> Scalar {
 mod tests {
     use super::*;
     use crate::keys::{derive_stealth_keys, MetaAddress};
+    use curve25519_dalek::constants::EIGHT_TORSION;
     use rand_chacha::ChaCha20Rng;
     use rand_core::SeedableRng;
 
@@ -164,6 +165,22 @@ mod tests {
         let mut rng = ChaCha20Rng::seed_from_u64(7);
 
         assert!(derive_payment(&meta, &mut rng).is_err());
+    }
+
+    #[test]
+    fn derive_payment_rejects_spend_key_with_torsion_component() {
+        let (spend, scan) = derive_stealth_keys(&TEST_SIG).unwrap();
+        let mut meta = MetaAddress::from_keys(&spend, &scan);
+        let bad_spend = spend.point + EIGHT_TORSION[1];
+        assert!(!bad_spend.is_small_order());
+        assert!(!bad_spend.is_torsion_free());
+        meta.b_spend = bad_spend.compress().to_bytes();
+        let mut rng = ChaCha20Rng::seed_from_u64(7);
+
+        assert!(matches!(
+            derive_payment(&meta, &mut rng),
+            Err(SlntError::InvalidPoint)
+        ));
     }
 
     #[test]

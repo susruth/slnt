@@ -1,0 +1,180 @@
+{
+  "name": "SLNT v1 conformance test vectors",
+  "srfc": "sRFC-0042",
+  "version": 1,
+  "created": "2026-05-31",
+  "warning": "Deterministic dummy material for tests only. Do not use any private/scalar material here on a live network.",
+  "encoding": {
+    "bytes": "lowercase hex without 0x; view_tag_hex uses a 0x-prefixed byte",
+    "solana_addresses": "base58",
+    "meta_addresses": "bech32m with HRP slnt"
+  },
+  "constants": {
+    "meta_address_version_v1": "0x01",
+    "scheme_id_v1": "0x0001",
+    "meta_address_hrp": "slnt",
+    "pinboard_program_id": "SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2",
+    "registry_program_id": "SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2",
+    "pinboard_note_event_discriminator_hex": "28b60597732b1b61",
+    "registry_meta_address_entry_discriminator_hex": "a507f19a07ac4ab2"
+  },
+  "vectors": {
+    "method1_hd": [
+      {
+        "id": "method1-hd-zero-seed-account-0",
+        "seed_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "account": 0,
+        "path_spend": "m/0x534C4E54'/501'/0'/0'",
+        "path_scan": "m/0x534C4E54'/501'/0'/1'",
+        "b_spend_hex": "8540b901321a10361337341fa7b31ba3dc20c8a56a440c99bee98b002a3f30f0",
+        "b_scan_raw_hex": "c133c4aa71b1fedba9249b1c3af64bb500871ac8a6535d507c10ef8e661c4e2c",
+        "b_scan_hex": "0e58c5fe78395b0b456a6c0fdc4316cc69d2511aab64662d030a0b0cf063b522",
+        "meta_address": "slnt1qxz5pwgpxgdpqdsnxu6plfanrw3acgxg544ygryehm5ckqp28uc0qrjcchl8sw2mpdzk5mq0m3p3dnrf6fg342myvcksxzstpncx8dfzqqqqm493l5"
+      },
+      {
+        "id": "method1-hd-zero-seed-account-1",
+        "seed_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "account": 1,
+        "path_spend": "m/0x534C4E54'/501'/1'/0'",
+        "path_scan": "m/0x534C4E54'/501'/1'/1'",
+        "b_spend_hex": "947a38c126854be61c23ae744700c8de3237ed48cf7bb5d07483bb5bb8ddf678",
+        "b_scan_raw_hex": "5b42d7a2139c400c6b1c909e075c4c7aaec0be64ec246f74d944ab4decda7c43",
+        "b_scan_hex": "eb716ea8a061bd1825f6d794da9b6f344c97f0db4c8d85af6f1cb8e27179d042",
+        "meta_address": "slnt1qx285wxpy6z5hesuywh8g3cqer0rydldfr8hhdwswjpmkkacmhm836m3d652qcdarqjld4u5m2dk7dzvjlcdknydskhk789cufchn5zzqqqqs75yg9"
+      }
+    ],
+    "method2_signature": [
+      {
+        "id": "method2-mainnet-signature-0x11",
+        "network": "Mainnet",
+        "canonical_message_utf8": "Slnt Protocol: Derive Stealth Keys\n\nVersion: 1\nNetwork: Mainnet\nWarning: Only sign this message in the Slnt wallet or a trusted Slnt integration.\nSigning this in any other context will reveal your stealth address scanning ability.",
+        "signature_hex": "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+        "b_spend_hex": "c66aea8e0b4c4a3c7fd0771e6fe66393a1e7716243fc5c6fdebc2e6b44966a7e",
+        "b_scan_raw_hex": "6ab0ee3574aa14080d43cd8023e858796c67dd5624b5a1828d1c53151b2b50a9",
+        "b_scan_hex": "6d1295a17fb10be262fb174782daea0d04a9e3e2b87d4e697127d3862841f32e",
+        "meta_address": "slnt1q8rx465wpdxy50rl6pm3umlxvwf6rem3vfplchr0m67zu66yje48umgjjkshlvgtuf30k968stdw5rgy48379wrafe5hzf7nsc5yruewqqqq66z9pd"
+      },
+      {
+        "id": "method2-mainnet-signature-0x33",
+        "network": "Mainnet",
+        "canonical_message_utf8": "Slnt Protocol: Derive Stealth Keys\n\nVersion: 1\nNetwork: Mainnet\nWarning: Only sign this message in the Slnt wallet or a trusted Slnt integration.\nSigning this in any other context will reveal your stealth address scanning ability.",
+        "signature_hex": "33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333",
+        "b_spend_hex": "08daec023ed224d10735bc73c904066187365b3009bdcdff52daf72f93b35eee",
+        "b_scan_raw_hex": "062c46dbe60532a2d8d2958fd445919a8488c71857b1e8931276f1aae80c8555",
+        "b_scan_hex": "012050403fd6a28ac93923ad613d78b60b80955c9b393b55c48bae742391a37f",
+        "meta_address": "slnt1qyyd4mqz8mfzf5g8xk788jgyqescwdjmxqymmn0l2td0wtunkd0wuqfq2pqrl44z3tynjgadvy7h3dstsz24exee8d2ufzawws3ergmlqqqqtv2kh3"
+      }
+    ],
+    "labels": [
+      {
+        "id": "method2-signature-0x22-label-9",
+        "signature_hex": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "label_index": 9,
+        "label_tweak_hex": "515fa1809b36ccf8deb0a589707b2d0d6aadd282975b291eb71a543bd4f27605",
+        "b_spend_hex": "1540f74cd3827fa5039ab095c9a9ec85373fe3d4086fbf0767e72c879427d57e",
+        "b_scan_hex": "73831fcb462ec83f872518ef383b213d4a88e055c5a6ed924efde0f3e7206312",
+        "meta_address": "slnt1qy25pa6v6wp8lfgrn2cftjdfajznw0lr6syxl0c8vlnjepu5yl2huuurrl95vtkg87rj2x808qajz0223rs9t3dxakfyal0q70njqccjpyqqeqee6q"
+      }
+    ],
+    "sender_derivation": [
+      {
+        "id": "sender-method2-0x33-r-ab",
+        "meta_address": "slnt1qyyd4mqz8mfzf5g8xk788jgyqescwdjmxqymmn0l2td0wtunkd0wuqfq2pqrl44z3tynjgadvy7h3dstsz24exee8d2ufzawws3ergmlqqqqtv2kh3",
+        "ephemeral_secret_hex": "abababababababababababababababababababababababababababababababab",
+        "stealth_address": "2GJUh7BgpAVFQVy9hqxhMHhH9n7LbMYAbvm3x1mvCcZo",
+        "stealth_address_hex": "12c7292e89dd7fc0bbe9ad5dce2db8c43f7b778c3e6122febdefe814f30dae62",
+        "ephemeral_pub_hex": "e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c624859",
+        "view_tag_hex": "0x4c"
+      },
+      {
+        "id": "sender-method2-0x22-label-9-r-cd",
+        "meta_address": "slnt1qy25pa6v6wp8lfgrn2cftjdfajznw0lr6syxl0c8vlnjepu5yl2huuurrl95vtkg87rj2x808qajz0223rs9t3dxakfyal0q70njqccjpyqqeqee6q",
+        "ephemeral_secret_hex": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "stealth_address": "933sLZPEJb1gDBfGyqQ9GuRDB88KbEKsH45QrNdqgZaH",
+        "stealth_address_hex": "7763e65651134ddb9e9010e361f6a2a2982a66fcf651b90417cd968e0a3bf662",
+        "ephemeral_pub_hex": "b5bea823d9c9ff576091c54b7c596c0ae296884f0e150290e88455d7fba6126f",
+        "view_tag_hex": "0x1f"
+      }
+    ],
+    "recipient_scan": [
+      {
+        "id": "scan-method2-0x33-unlabeled",
+        "signature_hex": "33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333",
+        "ephemeral_pub_hex": "e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c624859",
+        "view_tag_hex": "0x4c",
+        "known_labels": [],
+        "matches": [
+          {
+            "label_index": 0,
+            "stealth_address": "2GJUh7BgpAVFQVy9hqxhMHhH9n7LbMYAbvm3x1mvCcZo",
+            "stealth_scalar_hex": "ca0af81b1d7e08387562e7887fae20c0dac7fe2c7979fa03477b6ffea26ddc02"
+          }
+        ]
+      },
+      {
+        "id": "scan-method2-0x22-label-9",
+        "signature_hex": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "ephemeral_pub_hex": "b5bea823d9c9ff576091c54b7c596c0ae296884f0e150290e88455d7fba6126f",
+        "view_tag_hex": "0x1f",
+        "known_labels": [
+          9
+        ],
+        "matches": [
+          {
+            "label_index": 0,
+            "stealth_address": "FdPjsE6rSRxCpYr5jhp8oVAU3T5pU3bGq3a3W5Xu3KxH",
+            "stealth_scalar_hex": "15d249e75c8dd31404bc84997c228590366b7d3e1b0e452ccabf0d49effede05"
+          },
+          {
+            "label_index": 9,
+            "stealth_address": "933sLZPEJb1gDBfGyqQ9GuRDB88KbEKsH45QrNdqgZaH",
+            "stealth_scalar_hex": "6631eb67f8c39f0de36c2a23ed9db29da01850c1b2696e4a81da6184c3f1550b"
+          }
+        ]
+      }
+    ],
+    "pinboard": {
+      "note_event": {
+        "id": "pinboard-note-for-sender-method2-0x33-r-ab",
+        "program_id": "SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2",
+        "fee_payer": "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR",
+        "scheme_id": 1,
+        "ephemeral_pub_hex": "e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c624859",
+        "view_tag_hex": "0x4c",
+        "metadata_hex": "aabbcc",
+        "event_discriminator_hex": "28b60597732b1b61",
+        "borsh_body_hex": "0100e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c6248594c03000000aabbcc",
+        "event_payload_hex": "28b60597732b1b610100e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c6248594c03000000aabbcc",
+        "program_data_base64": "KLYFl3MrG2EBAONxLYUaDl15uDHF40qyK0GhmBcd4gm4uPrKI6EcYkhZTAMAAACqu8w=",
+        "post_instruction_data_hex": "df60eaec9e6a915e0100e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c6248594c03000000aabbcc"
+      }
+    },
+    "registry": {
+      "register": {
+        "id": "registry-register-method2-0x11",
+        "program_id": "SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2",
+        "registrant": "CktRuQ2mttgRGkXJtyksdKHjUdc2C4TgDzyB98oEzy8",
+        "scheme_id": 1,
+        "pda": "HjUpGaNemD5YdsbzzwNypBRwBP56nXK8eKwc8iz753Xj",
+        "bump": 255,
+        "payload": {
+          "version": 1,
+          "b_spend_hex": "c66aea8e0b4c4a3c7fd0771e6fe66393a1e7716243fc5c6fdebc2e6b44966a7e",
+          "b_scan_hex": "6d1295a17fb10be262fb174782daea0d04a9e3e2b87d4e697127d3862841f32e",
+          "flags": 0,
+          "payload_hex": "01c66aea8e0b4c4a3c7fd0771e6fe66393a1e7716243fc5c6fdebc2e6b44966a7e6d1295a17fb10be262fb174782daea0d04a9e3e2b87d4e697127d3862841f32e00"
+        },
+        "instruction_data_hex": "d37c430fd3c2b2f0010001c66aea8e0b4c4a3c7fd0771e6fe66393a1e7716243fc5c6fdebc2e6b44966a7e6d1295a17fb10be262fb174782daea0d04a9e3e2b87d4e697127d3862841f32e00",
+        "account_discriminator_hex": "a507f19a07ac4ab2",
+        "account_data_hex": "a507f19a07ac4ab203030303030303030303030303030303030303030303030303030303030303030100ff01c66aea8e0b4c4a3c7fd0771e6fe66393a1e7716243fc5c6fdebc2e6b44966a7e6d1295a17fb10be262fb174782daea0d04a9e3e2b87d4e697127d3862841f32e00"
+      }
+    },
+    "invalid": {
+      "base_meta_address": "slnt1qyyd4mqz8mfzf5g8xk788jgyqescwdjmxqymmn0l2td0wtunkd0wuqfq2pqrl44z3tynjgadvy7h3dstsz24exee8d2ufzawws3ergmlqqqqtv2kh3",
+      "ephemeral_secret_hex": "abababababababababababababababababababababababababababababababab",
+      "bad_spend_identity_hex": "0100000000000000000000000000000000000000000000000000000000000000",
+      "bad_spend_with_torsion_hex": "c72f5a510b04590d53713a4b38d1bd20201df190de17b30030a2f7d7f2bf3649",
+      "bad_scan_low_order_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  }
+}
