@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="SLNT gives Solana wallets reusable addresses that resolve into fresh stealth wallets, with an open sRFC, SDKs, test vectors, and live devnet/testnet programs."
+    />
+    <title>SLNT - Silent Payments for Solana Wallets</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header" aria-label="Primary">
+      <a class="brand-mark" href="#top" aria-label="SLNT home">
+        <span class="brand-bars" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+        <span>SLNT</span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="https://github.com/susruth/slnt/blob/main/docs/srfc/0001-slnt-silent-payments.md">sRFC</a>
+        <a href="https://github.com/susruth/slnt">GitHub</a>
+        <a href="https://github.com/susruth/slnt/blob/main/test-vectors.json">Vectors</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="wordmark" aria-label="SLNT">
+          <span>S</span><span>L</span><span>N</span><span>T</span>
+        </div>
+
+        <p class="eyebrow">sRFC-0042 / open draft</p>
+        <h1 id="hero-title">Silent payments, built for Solana wallets.</h1>
+        <p class="hero-copy">
+          Give users one shareable address without turning every transfer into
+          a public account graph. SLNT derives a fresh Solana wallet per
+          payment, with recipient-only discovery.
+        </p>
+
+        <div class="hero-actions" aria-label="Primary actions">
+          <a class="button primary" href="https://github.com/susruth/slnt/blob/main/docs/srfc/0001-slnt-silent-payments.md">
+            Read the sRFC
+          </a>
+          <a class="button secondary" href="https://github.com/susruth/slnt">
+            Build with the SDK
+          </a>
+        </div>
+
+        <div class="quick-command" aria-label="Try it now">
+          <div class="command-label">VERIFY THE REFERENCE</div>
+          <pre><code>$ git clone https://github.com/susruth/slnt
+$ cd slnt
+$ cargo test -p slnt-sdk</code></pre>
+        </div>
+
+        <div class="hero-badges" aria-label="Project status">
+          <span>Wallet SDKs</span>
+          <span>Test vectors</span>
+          <span>Devnet + testnet live</span>
+        </div>
+      </section>
+
+      <section class="terminal-showcase" aria-label="Protocol preview">
+        <div class="terminal-card">
+          <div class="window-bar">
+            <span></span>
+            <span></span>
+            <span></span>
+            <strong>slnt</strong>
+          </div>
+          <div class="flow-grid" aria-label="Silent payment flow">
+            <div class="flow-node sender">
+              <small>sender</small>
+              <strong>fresh randomness</strong>
+            </div>
+            <div class="flow-line line-one" aria-hidden="true"></div>
+            <div class="flow-node meta">
+              <small>recipient</small>
+              <strong>meta-address</strong>
+            </div>
+            <div class="flow-line line-two" aria-hidden="true"></div>
+            <div class="flow-node stealth">
+              <small>payment lands at</small>
+              <strong>stealth wallet</strong>
+            </div>
+            <div class="flow-line line-three" aria-hidden="true"></div>
+            <div class="flow-node scan">
+              <small>wallet detects</small>
+              <strong>recipient-only match</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section split-section" aria-labelledby="gap-title">
+        <div>
+          <p class="eyebrow">THE WALLET GAP</p>
+          <h2 id="gap-title">Users should not choose between convenience and privacy.</h2>
+        </div>
+        <p>
+          Today, wallets have two awkward options: reuse one public address and
+          expose a user's payment graph, or ask people to coordinate fresh
+          addresses out of band. SLNT gives wallets a third path: a reusable
+          meta-address that produces unlinkable one-time wallets for each
+          payment.
+        </p>
+      </section>
+
+      <section class="section cards-section" aria-labelledby="primitives-title">
+        <div class="section-heading">
+          <p class="eyebrow">WHAT WALLETS IMPLEMENT</p>
+          <h2 id="primitives-title">A small standard for reusable, private receiving.</h2>
+        </div>
+
+        <div class="primitive-grid">
+          <article class="primitive-card">
+            <span class="card-index">01</span>
+            <h3>Meta-address</h3>
+            <p>
+              A shareable receiving address with spend and scan public material.
+              Users can put it in a profile, QR code, checkout flow, or contact.
+            </p>
+          </article>
+          <article class="primitive-card">
+            <span class="card-index">02</span>
+            <h3>Stealth derivation</h3>
+            <p>
+              Senders derive a fresh Solana wallet for every payment. Recipients
+              scan announcements and recognize only the outputs meant for them.
+            </p>
+          </article>
+          <article class="primitive-card">
+            <span class="card-index">03</span>
+            <h3>Discovery layer</h3>
+            <p>
+              Pinboard handles payment announcements. The optional registry maps
+              wallet pubkeys to meta-addresses without custody or admin control.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section stack-section" aria-labelledby="stack-title">
+        <div class="section-heading">
+          <p class="eyebrow">BUILDER READY</p>
+          <h2 id="stack-title">Enough implementation to review, test, and integrate.</h2>
+        </div>
+
+        <div class="stack-table" role="table" aria-label="Reference implementation status">
+          <div class="table-row table-head" role="row">
+            <span role="columnheader">Component</span>
+            <span role="columnheader">What it gives builders</span>
+            <span role="columnheader">Status</span>
+          </div>
+          <div class="table-row" role="row">
+            <span role="cell">pinboard</span>
+            <span role="cell">Permissionless announcement events for payment discovery</span>
+            <span role="cell">Devnet/testnet</span>
+          </div>
+          <div class="table-row" role="row">
+            <span role="cell">registry</span>
+            <span role="cell">Optional wallet-to-meta-address lookup</span>
+            <span role="cell">Devnet/testnet</span>
+          </div>
+          <div class="table-row" role="row">
+            <span role="cell">Rust SDK</span>
+            <span role="cell">Cryptographic reference for conformance</span>
+            <span role="cell">Vectors included</span>
+          </div>
+          <div class="table-row" role="row">
+            <span role="cell">TypeScript SDK</span>
+            <span role="cell">Wallet, dapp, and browser integration surface</span>
+            <span role="cell">Byte-compatible</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section status-band" aria-labelledby="status-title">
+        <div>
+          <p class="eyebrow">STATUS</p>
+          <h2 id="status-title">Open now, immutable after review.</h2>
+          <p>
+            SLNT is a draft standard for public review. Current devnet and
+            testnet deployments remain upgradeable while v1 is draft and
+            unaudited; the canonical v1 deployment is intended to become
+            immutable as soon as v1 is finalized and independently audited.
+          </p>
+        </div>
+        <a class="button primary" href="https://github.com/susruth/slnt/discussions">
+          Review the draft
+        </a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>SLNT is experimental software. Do not use with funds you cannot afford to lose.</span>
+      <a href="https://github.com/susruth/slnt/blob/main/SECURITY.md">Security policy</a>
+    </footer>
+  </body>
+</html>
