@@ -1,12 +1,45 @@
 {
   "name": "@slnt/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript wallet SDK for the Slnt stealth-payment protocol (sRFC-0042)",
   "license": "MIT",
-  "main": "src/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/susruth/slnt.git",
+    "directory": "clients/typescript"
+  },
+  "bugs": {
+    "url": "https://github.com/susruth/slnt/issues"
+  },
+  "homepage": "https://github.com/susruth/slnt#readme",
+  "keywords": [
+    "solana",
+    "silent-payments",
+    "stealth-addresses",
+    "privacy",
+    "wallet"
+  ],
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "mocha",
-    "build": "tsc"
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@noble/curves": "^1.6.0",
