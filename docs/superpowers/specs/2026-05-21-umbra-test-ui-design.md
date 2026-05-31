@@ -1,14 +1,14 @@
-# Umbra Test UI — Design Spec
+# Slnt Test UI — Design Spec
 
 **Date:** 2026-05-21
 **Status:** Draft for review
-**Scope:** A small local web UI to exercise `umbra-sdk` end-to-end against `solana-test-validator`.
+**Scope:** A small local web UI to exercise `slnt-sdk` end-to-end against `solana-test-validator`.
 
 ## 1. Goal & Non-goals
 
 ### Goal
 
-Let a developer try the Umbra stealth-payment protocol in a browser by driving two simulated users (sender and recipient) through the full lifecycle — generate keys, share a meta-address, send a payment, scan the pinboard, sweep the stealth address — and see results update live.
+Let a developer try the Slnt stealth-payment protocol in a browser by driving two simulated users (sender and recipient) through the full lifecycle — generate keys, share a meta-address, send a payment, scan the pinboard, sweep the stealth address — and see results update live.
 
 The UI is a tool for testing and demoing the SDK. It is **not** a production wallet.
 
@@ -25,7 +25,7 @@ The UI is a tool for testing and demoing the SDK. It is **not** a production wal
 
 ### 2.1 Process model
 
-A single Rust binary (`umbra-ui`) runs an `axum` HTTP server on `127.0.0.1:3000`. The server:
+A single Rust binary (`slnt-ui`) runs an `axum` HTTP server on `127.0.0.1:3000`. The server:
 
 - Serves a static HTML/CSS/JS frontend from an embedded `assets/` directory.
 - Exposes a JSON REST API at `/api/*` for sender and recipient operations.
@@ -92,7 +92,7 @@ The recipient page sets a `setInterval` of 2 s that calls `GET /api/recipient/sc
 Stacked panels, top to bottom:
 
 1. Wallet bar.
-2. **Send payment**: textarea for `meta_address` (umbra1…), number input for SOL amount, `Send` button. Disabled while in-flight. On success, the bottom of this panel renders a small receipt with `tx_sig`, derived `stealth_address`, and `view_tag`.
+2. **Send payment**: textarea for `meta_address` (slnt1…), number input for SOL amount, `Send` button. Disabled while in-flight. On success, the bottom of this panel renders a small receipt with `tx_sig`, derived `stealth_address`, and `view_tag`.
 3. **History**: list of past payments (newest first), each row: `↗ <amount> SOL → <stealth_address_short> · <tx_sig_short>`.
 
 ### 3.3 Recipient page (`/recipient`)
@@ -100,7 +100,7 @@ Stacked panels, top to bottom:
 Stacked panels:
 
 1. Wallet bar.
-2. **Your meta-address**: a card showing the umbra1… string in a monospace block. Buttons: `Copy`, `Regenerate`. If no keys derived yet, panel shows a `Generate stealth keys` button instead.
+2. **Your meta-address**: a card showing the slnt1… string in a monospace block. Buttons: `Copy`, `Regenerate`. If no keys derived yet, panel shows a `Generate stealth keys` button instead.
 3. **Incoming payments**: header has `Scan now` button and a "scanning · last refreshed Ns ago" status line. Body lists matched, unswept stealth addresses. Each row: stealth address (mono), balance in SOL, view_tag (hex), and a `Sweep →` button. On sweep success the row disappears (added to `swept`).
 4. **Sweep history**: list of past sweeps (newest first), each row: `✓ <amount> SOL from <stealth_short> · <tx_sig_short>`.
 
@@ -149,7 +149,7 @@ A new script `scripts/demo-ui.sh` mirrors `scripts/demo-lifecycle.sh`:
 2. Kill any stray `solana-test-validator`.
 3. Start a fresh validator with the pinboard preloaded.
 4. Wait until `solana cluster-version` succeeds.
-5. `cargo run --release -p umbra-ui`.
+5. `cargo run --release -p slnt-ui`.
 6. Trap EXIT to tear down the validator.
 
 The binary itself never touches the validator. It assumes RPC at `127.0.0.1:8899` and the pinboard at the well-known program id.
@@ -157,8 +157,8 @@ The binary itself never touches the validator. It assumes RPC at `127.0.0.1:8899
 ## 6. Crate layout
 
 ```
-crates/umbra-ui/
-├── Cargo.toml              # deps: umbra-sdk (path), axum, tokio (rt-multi-thread, macros),
+crates/slnt-ui/
+├── Cargo.toml              # deps: slnt-sdk (path), axum, tokio (rt-multi-thread, macros),
 │                           #       tower-http (fs, trace), serde (derive), serde_json,
 │                           #       solana-sdk = "2.3", solana-client = "2.3",
 │                           #       solana-system-interface = "1", anyhow, hex,
@@ -189,9 +189,9 @@ The crate is added to the workspace `members` list (already includes `"crates/*"
 
 ## 8. Testing
 
-- Per-handler unit tests are skipped — handlers are thin wrappers over SDK calls already covered in `umbra-sdk` tests.
+- Per-handler unit tests are skipped — handlers are thin wrappers over SDK calls already covered in `slnt-sdk` tests.
 - Manual end-to-end via `scripts/demo-ui.sh` is the acceptance test. The implementation plan will spell out the exact click-through script.
-- A smoke `cargo build -p umbra-ui --release` runs in the plan's verification steps.
+- A smoke `cargo build -p slnt-ui --release` runs in the plan's verification steps.
 
 ## 9. Out of scope / future
 

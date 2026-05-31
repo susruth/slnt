@@ -1,0 +1,52 @@
+[package]
+name = "slnt-sdk"
+version = "0.1.0"
+edition = "2021"
+description = "Rust SDK for the Slnt stealth-payment protocol on Solana (v1)"
+license = "Apache-2.0"
+
+[lib]
+name = "slnt_sdk"
+path = "src/lib.rs"
+
+[features]
+default = []
+rpc = ["dep:solana-client"]
+# Networked clients: announcement-service HTTP client (§5.8.4) and
+# pinboard logsSubscribe self-scan (§5.10).
+net = ["rpc", "dep:reqwest", "dep:futures-util"]
+
+[dependencies]
+curve25519-dalek = { version = "4.1", features = ["digest"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+sha2 = "0.10"
+hkdf = "0.12"
+hmac = "0.12"
+bech32 = "0.11"
+borsh = { version = "1", features = ["derive"] }
+solana-sdk = "2.3"
+solana-system-interface = { version = "1", features = ["bincode"] }
+spl-token = { version = "8", features = ["no-entrypoint"] }
+spl-associated-token-account = { version = "7", features = ["no-entrypoint"] }
+rand_core = "0.6"
+thiserror = "1"
+base64 = "0.22"
+bs58 = "0.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+solana-client = { version = "2.3", optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"], optional = true }
+futures-util = { version = "0.3", optional = true }
+
+[dev-dependencies]
+rand_chacha = "0.3"
+hex = "0.4"
+solana-client = "2.3"
+solana-system-interface = "1"
+solana-transaction-status = "2.3"
+tokio = { version = "1", features = ["rt", "macros"] }
+
+[[example]]
+name = "lifecycle"
+path = "examples/lifecycle.rs"

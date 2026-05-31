@@ -1,0 +1,6 @@
+{
+  "require": "ts-mocha",
+  "spec": "test/**/*.test.ts",
+  "extension": ["ts"],
+  "timeout": 20000
+}

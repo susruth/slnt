@@ -1,8 +1,8 @@
 //! Ed25519 signing with a scalar-form private key (no RFC 8032 seed).
 //!
-//! Umbra's recipient sweep needs to sign Solana transactions from the
+//! Slnt's recipient sweep needs to sign Solana transactions from the
 //! stealth address. The recipient holds `p_stealth` as a Scalar (per
-//! spec §5), not an RFC 8032 seed.
+//! sRFC-0042 §5.4/§5.9), not an RFC 8032 seed.
 //!
 //! `ed25519-dalek` 2.x exposes a `hazmat` module, but its
 //! `ExpandedSecretKey` only constructs via `from_bytes` which clamps
@@ -16,7 +16,7 @@ use curve25519_dalek::{constants::ED25519_BASEPOINT_POINT, EdwardsPoint, Scalar}
 use ed25519_dalek::{Signature, VerifyingKey};
 use sha2::{Digest, Sha512};
 
-const NONCE_TAG: &[u8] = b"umbra-v1-nonce";
+const NONCE_TAG: &[u8] = b"slnt-v1-nonce";
 
 /// A scalar-form Ed25519 signing key.
 pub struct StealthSigningKey {
@@ -42,7 +42,11 @@ impl StealthSigningKey {
 
         let public_point = scalar * ED25519_BASEPOINT_POINT;
 
-        Self { scalar, public_point, hash_prefix }
+        Self {
+            scalar,
+            public_point,
+            hash_prefix,
+        }
     }
 
     /// Compressed Ed25519 public bytes — equals the Solana address

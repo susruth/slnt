@@ -1,18 +1,16 @@
-//! Sender-side stealth-address derivation (spec §4).
+//! Sender-side stealth-address derivation (sRFC-0042 §5.3).
 
-use crate::error::UmbraError;
-use crate::keys::MetaAddress;
-use curve25519_dalek::{
-    constants::ED25519_BASEPOINT_POINT, edwards::CompressedEdwardsY, Scalar,
-};
+use crate::error::SlntError;
+use crate::keys::{MetaAddress, META_ADDRESS_VERSION_V1};
+use curve25519_dalek::{constants::ED25519_BASEPOINT_POINT, edwards::CompressedEdwardsY, Scalar};
 use rand_core::CryptoRngCore;
 use sha2::{Digest, Sha256};
 use solana_sdk::pubkey::Pubkey;
 use x25519_dalek::{PublicKey as X25519PublicKey, StaticSecret as X25519StaticSecret};
 
-/// Domain-separation tag for the stealth-address tweak hash (spec §4
-/// step 3 and step 4). 14 bytes.
-const TWEAK_TAG: &[u8] = b"umbra-v1-tweak";
+/// Domain-separation tag for the stealth-address tweak hash
+/// (sRFC-0042 §5.3). 14 bytes.
+const TWEAK_TAG: &[u8] = b"slnt-v1-tweak";
 
 /// Output of `derive_payment`.
 #[derive(Debug, Clone)]
@@ -25,18 +23,28 @@ pub struct StealthPayment {
     pub view_tag: u8,
 }
 
-/// Spec §4. The sender derives a one-time stealth address for the
+/// sRFC-0042 §5.3. The sender derives a one-time stealth address for the
 /// given meta-address, plus the (R, view_tag) tuple to publish on the
 /// pinboard.
 pub fn derive_payment(
     meta: &MetaAddress,
     rng: &mut impl CryptoRngCore,
-) -> Result<StealthPayment, UmbraError> {
+) -> Result<StealthPayment, SlntError> {
+    if meta.version != META_ADDRESS_VERSION_V1 {
+        return Err(SlntError::UnsupportedVersion(meta.version));
+    }
+    if meta.flags != 0 {
+        return Err(SlntError::UnsupportedFlags(meta.flags));
+    }
+
     // Decompress B_spend_effective (already incorporates label tweak if any).
     let b_spend_compressed = CompressedEdwardsY(meta.b_spend);
     let b_spend = b_spend_compressed
         .decompress()
-        .ok_or(UmbraError::InvalidPoint)?;
+        .ok_or(SlntError::InvalidPoint)?;
+    if b_spend.is_small_order() {
+        return Err(SlntError::InvalidPoint);
+    }
 
     // 1. Generate ephemeral X25519 scalar r.
     let mut r_bytes = [0u8; 32];
@@ -47,6 +55,9 @@ pub fn derive_payment(
     // 2. ECDH: S = r · B_scan
     let b_scan_public = X25519PublicKey::from(meta.b_scan);
     let s = r.diffie_hellman(&b_scan_public);
+    if shared_secret_is_zero(s.as_bytes()) {
+        return Err(SlntError::InvalidSharedSecret);
+    }
 
     // 3. view_tag = SHA-256(len(tag) || tag || S)[0]
     let view_tag = compute_view_tag(s.as_bytes());
@@ -65,7 +76,11 @@ pub fn derive_payment(
     })
 }
 
-/// `SHA-256(1-byte-len || TWEAK_TAG || S)[0]`. Spec §4 step 3.
+pub(crate) fn shared_secret_is_zero(s: &[u8; 32]) -> bool {
+    s.iter().all(|b| *b == 0)
+}
+
+/// `SHA-256(1-byte-len || TWEAK_TAG || S)[0]`. sRFC-0042 §5.3.
 pub(crate) fn compute_view_tag(s: &[u8]) -> u8 {
     let mut hasher = Sha256::new();
     hasher.update([TWEAK_TAG.len() as u8]);
@@ -76,7 +91,7 @@ pub(crate) fn compute_view_tag(s: &[u8]) -> u8 {
 }
 
 /// `SC25519_reduce(SHA-256(1-byte-len || TWEAK_TAG || S || view_tag))`.
-/// Spec §4 step 4.
+/// sRFC-0042 §5.3.
 pub(crate) fn compute_tweak(s: &[u8], view_tag: u8) -> Scalar {
     let mut hasher = Sha256::new();
     hasher.update([TWEAK_TAG.len() as u8]);
@@ -125,5 +140,39 @@ mod tests {
         // distinct stealth addresses (ephemeral randomness varies).
         assert_ne!(p1.stealth_address, p2.stealth_address);
         assert_ne!(p1.ephemeral_pub, p2.ephemeral_pub);
+    }
+
+    #[test]
+    fn derive_payment_rejects_unsupported_meta_fields() {
+        let (spend, scan) = derive_stealth_keys(&TEST_SIG).unwrap();
+        let mut bad_version = MetaAddress::from_keys(&spend, &scan);
+        bad_version.version = 0x02;
+        let mut bad_flags = MetaAddress::from_keys(&spend, &scan);
+        bad_flags.flags = 0x01;
+        let mut rng = ChaCha20Rng::seed_from_u64(7);
+
+        assert!(derive_payment(&bad_version, &mut rng).is_err());
+        assert!(derive_payment(&bad_flags, &mut rng).is_err());
+    }
+
+    #[test]
+    fn derive_payment_rejects_small_order_spend_key() {
+        let (spend, scan) = derive_stealth_keys(&TEST_SIG).unwrap();
+        let mut meta = MetaAddress::from_keys(&spend, &scan);
+        meta.b_spend = [0u8; 32];
+        meta.b_spend[0] = 1; // compressed Ed25519 identity point
+        let mut rng = ChaCha20Rng::seed_from_u64(7);
+
+        assert!(derive_payment(&meta, &mut rng).is_err());
+    }
+
+    #[test]
+    fn derive_payment_rejects_all_zero_shared_secret() {
+        let (spend, scan) = derive_stealth_keys(&TEST_SIG).unwrap();
+        let mut meta = MetaAddress::from_keys(&spend, &scan);
+        meta.b_scan = [0u8; 32]; // low-order X25519 point
+        let mut rng = ChaCha20Rng::seed_from_u64(7);
+
+        assert!(derive_payment(&meta, &mut rng).is_err());
     }
 }

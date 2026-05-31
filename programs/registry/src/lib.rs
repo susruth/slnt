@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 
-declare_id!("CFSsGrZaZz9ZsPayKWSRkLp6xd28HCWwXhpdQFMyupXC");
+declare_id!("SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2");
 
 #[program]
-pub mod umbra_registry {
+pub mod registry {
     use super::*;
 
     pub fn register(
@@ -35,11 +35,7 @@ pub mod umbra_registry {
         Ok(())
     }
 
-    pub fn update(
-        ctx: Context<Update>,
-        scheme_id: u16,
-        payload: MetaAddressPayload,
-    ) -> Result<()> {
+    pub fn update(ctx: Context<Update>, scheme_id: u16, payload: MetaAddressPayload) -> Result<()> {
         require!(scheme_id != 0, RegistryError::InvalidSchemeId);
         require!(payload.version == 1, RegistryError::InvalidVersion);
         require!(payload.flags == 0, RegistryError::InvalidFlags);
@@ -120,13 +116,13 @@ pub struct Close<'info> {
 
 #[account]
 pub struct MetaAddressEntry {
-    pub registrant: Pubkey,     // 32
-    pub scheme_id: u16,         // 2
-    pub bump: u8,               // 1
-    pub version: u8,            // 1
-    pub b_spend: [u8; 32],      // 32
-    pub b_scan: [u8; 32],       // 32
-    pub flags: u8,              // 1
+    pub registrant: Pubkey, // 32
+    pub scheme_id: u16,     // 2
+    pub bump: u8,           // 1
+    pub version: u8,        // 1
+    pub b_spend: [u8; 32],  // 32
+    pub b_scan: [u8; 32],   // 32
+    pub flags: u8,          // 1
 }
 
 impl MetaAddressEntry {

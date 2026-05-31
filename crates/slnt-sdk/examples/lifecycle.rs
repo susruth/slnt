@@ -26,20 +26,16 @@ const RPC_URL: &str = "http://127.0.0.1:8899";
 
 /// Pinboard program ID (current dev keypair; baked in for demo
 /// reproducibility — the shell wrapper deploys it).
-const PINBOARD_PROGRAM_ID: &str = "SLNTiiEuVeeSCBeYC86i2sSf3j7GdXx5crHzhEQfidB";
+const PINBOARD_PROGRAM_ID: &str = "SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2";
 
 const ONE_SOL: u64 = 1_000_000_000;
 
 fn main() {
-    let rpc = RpcClient::new_with_commitment(
-        RPC_URL.to_string(),
-        CommitmentConfig::confirmed(),
-    );
+    let rpc = RpcClient::new_with_commitment(RPC_URL.to_string(), CommitmentConfig::confirmed());
 
-    println!("== Umbra lifecycle demo ==");
+    println!("== Slnt lifecycle demo ==");
     println!("RPC: {RPC_URL}");
-    let pinboard_id = Pubkey::from_str(PINBOARD_PROGRAM_ID)
-        .expect("PINBOARD_PROGRAM_ID parse");
+    let pinboard_id = Pubkey::from_str(PINBOARD_PROGRAM_ID).expect("PINBOARD_PROGRAM_ID parse");
     println!("pinboard program: {pinboard_id}");
 
     // ---- 1. Setup ----
@@ -57,34 +53,31 @@ fn main() {
     // For the demo, "sign" the canonical message with a fresh Ed25519
     // keypair derived from a fixed seed. In production this would be
     // a user wallet signature.
-    let canonical_msg = umbra_sdk::keys::CANONICAL_MESSAGE_LOCALNET.as_bytes();
+    let canonical_msg = slnt_sdk::keys::CANONICAL_MESSAGE_LOCALNET.as_bytes();
     let recipient_id_seed: [u8; 32] = [
-        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
-        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
-        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
-        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89,
+        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67,
+        0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45,
+        0x67, 0x89,
     ];
-    let recipient_id_sk =
-        ed25519_dalek::SigningKey::from_bytes(&recipient_id_seed);
+    let recipient_id_sk = ed25519_dalek::SigningKey::from_bytes(&recipient_id_seed);
     let signature: ed25519_dalek::Signature = recipient_id_sk.sign(canonical_msg);
     let sig_bytes: [u8; 64] = signature.to_bytes();
 
-    let (spend, scan) = umbra_sdk::keys::derive_stealth_keys(&sig_bytes)
-        .expect("derive_stealth_keys");
-    let meta = umbra_sdk::keys::MetaAddress::from_keys(&spend, &scan);
+    let (spend, scan) =
+        slnt_sdk::keys::derive_stealth_keys(&sig_bytes).expect("derive_stealth_keys");
+    let meta = slnt_sdk::keys::MetaAddress::from_keys(&spend, &scan);
     let meta_str = meta.encode_bech32m().expect("encode meta-address");
     println!("  meta-address: {meta_str}");
 
     // ---- 3. Sender: derive stealth address ----
     println!("\n[3/6] sender: deriving stealth address");
     let decoded_meta =
-        umbra_sdk::keys::MetaAddress::decode_bech32m(&meta_str)
-            .expect("decode meta-address");
+        slnt_sdk::keys::MetaAddress::decode_bech32m(&meta_str).expect("decode meta-address");
     // Use a strong RNG in production. Seeded here so demo output is
     // reproducible across runs.
     let mut sender_rng = ChaCha20Rng::seed_from_u64(0xdeadbeef);
-    let payment = umbra_sdk::sender::derive_payment(&decoded_meta, &mut sender_rng)
-        .expect("derive_payment");
+    let payment =
+        slnt_sdk::sender::derive_payment(&decoded_meta, &mut sender_rng).expect("derive_payment");
     println!("  stealth address: {}", payment.stealth_address);
     println!("  ephemeral_pub:   {}", hex::encode(payment.ephemeral_pub));
     println!("  view_tag:        0x{:02x}", payment.view_tag);
@@ -96,16 +89,15 @@ fn main() {
         &payment.stealth_address,
         ONE_SOL,
     );
-    let post_ix = umbra_sdk::pinboard::build_post_instruction(
+    let post_ix = slnt_sdk::pinboard::build_post_instruction(
         &pinboard_id,
         &sender_wallet.pubkey(),
-        umbra_sdk::keys::SCHEME_ID_V1,
+        slnt_sdk::keys::SCHEME_ID_V1,
         payment.ephemeral_pub,
         payment.view_tag,
         vec![], // metadata: empty for demo
     );
-    let latest_blockhash =
-        rpc.get_latest_blockhash().expect("get_latest_blockhash");
+    let latest_blockhash = rpc.get_latest_blockhash().expect("get_latest_blockhash");
     let tx = solana_sdk::transaction::Transaction::new_signed_with_payer(
         &[transfer_ix, post_ix],
         Some(&sender_wallet.pubkey()),
@@ -124,15 +116,15 @@ fn main() {
 
     // ---- 5. Recipient: scan pinboard logs ----
     println!("\n[5/6] recipient: scanning pinboard logs");
-    let matched = scan_pinboard_for_match(&rpc, &pinboard_id, &spend, &scan)
-        .expect("scan returned a match");
+    let matched =
+        scan_pinboard_for_match(&rpc, &pinboard_id, &spend, &scan).expect("scan returned a match");
     println!("  found match: stealth address {}", matched.stealth_address);
     assert_eq!(matched.stealth_address, payment.stealth_address);
 
     // ---- 6. Recipient: sweep stealth address ----
     println!("\n[6/6] recipient: sweeping stealth balance to main wallet");
     let stealth_signing_key =
-        umbra_sdk::stealth_signing::StealthSigningKey::new(matched.stealth_scalar);
+        slnt_sdk::stealth_signing::StealthSigningKey::new(matched.stealth_scalar);
     // Sanity check before we sign anything: the signing key's public
     // bytes must equal the stealth address bytes.
     assert_eq!(
@@ -200,7 +192,10 @@ fn main() {
         "recipient should gain exactly the swept lamports"
     );
     println!("\n== SUCCESS: stealth payment delivered and swept ==");
-    println!("   {} lamports moved to recipient through a stealth address", recipient_gain);
+    println!(
+        "   {} lamports moved to recipient through a stealth address",
+        recipient_gain
+    );
 }
 
 /// Scan recent pinboard transactions, parse Note events, and try
@@ -209,9 +204,9 @@ fn main() {
 fn scan_pinboard_for_match(
     rpc: &RpcClient,
     pinboard_id: &Pubkey,
-    spend: &umbra_sdk::keys::SpendKey,
-    scan: &umbra_sdk::keys::ScanKey,
-) -> Option<umbra_sdk::recipient::NoteMatch> {
+    spend: &slnt_sdk::keys::SpendKey,
+    scan: &slnt_sdk::keys::ScanKey,
+) -> Option<slnt_sdk::recipient::NoteMatch> {
     use solana_client::rpc_client::GetConfirmedSignaturesForAddress2Config;
     use solana_sdk::commitment_config::CommitmentConfig;
 
@@ -250,9 +245,12 @@ fn scan_pinboard_for_match(
                 })
                 .unwrap_or_default();
             for line in logs {
-                if let Ok(Some(note)) = umbra_sdk::pinboard::try_parse_note_log(&line) {
-                    if let Ok(Some(m)) = umbra_sdk::recipient::scan_note(
-                        spend, scan, &note.ephemeral_pub, note.view_tag,
+                if let Ok(Some(note)) = slnt_sdk::pinboard::try_parse_note_log(&line) {
+                    if let Ok(Some(m)) = slnt_sdk::recipient::scan_note(
+                        spend,
+                        scan,
+                        &note.ephemeral_pub,
+                        note.view_tag,
                     ) {
                         return Some(m);
                     }

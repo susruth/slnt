@@ -2,7 +2,7 @@
 
 A minimal, permissionless on-chain primitive for publishing tagged notes on
 Solana. Anyone can post; anyone can read; the program holds no state. The
-[Umbra](../../docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md)
+[Slnt](../../docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md)
 stealth-payment protocol is the first consumer, but pinboard is intended as
 a generic substrate that any protocol can adopt or fork.
 
@@ -27,7 +27,7 @@ no admin keys.
 | Arg | Type | Notes |
 |---|---|---|
 | `scheme_id` | `u16` | Cryptographic-suite identifier. The program does not validate this; consuming protocols define their own scheme registries. |
-| `ephemeral_pub` | `[u8; 32]` | The sender's ephemeral public key for the protocol (e.g., X25519 R for Umbra v1). |
+| `ephemeral_pub` | `[u8; 32]` | The sender's ephemeral public key for the protocol (e.g., X25519 R for Slnt v1). |
 | `view_tag` | `u8` | Short recognition hint, recipient-derived. |
 | `metadata` | `Vec<u8>` | Opaque bytes, max 64. Consuming protocols define semantics; the program treats it as a blob. |
 
@@ -149,6 +149,6 @@ deploy.
 
 | Network | Program ID |
 |---|---|
-| Localnet (dev) | `G2zSN8WVP9TujyNCtXRW3nvNqymUW7QiuxB273UF9z6P` (keypair at `target/deploy/pinboard-keypair.json`) |
+| Localnet (dev) | `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (keypair at `target/deploy/pinboard-keypair.json`) |
 | Devnet | TBD — populated on first devnet deployment |
 | Mainnet | TBD — vanity-grinded prefix, populated on first mainnet deployment |

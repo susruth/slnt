@@ -1,10 +1,16 @@
 use anchor_lang::prelude::*;
 
-declare_id!("SLNTiiEuVeeSCBeYC86i2sSf3j7GdXx5crHzhEQfidB");
+declare_id!("SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2");
 
 /// Maximum length of the optional `metadata` field in a note,
-/// in bytes. See spec §6.1.
+/// in bytes. See sRFC-0042 §5.5.1.
 pub const MAX_METADATA_LEN: usize = 64;
+
+/// Maximum number of notes in a single `post_batch`. The transaction
+/// size limit already bounds practical batches to ~30 entries; this is
+/// an explicit defensive cap that fails large batches with a clear
+/// error rather than an opaque resource exhaustion. See sRFC-0042 §5.5.1.
+pub const MAX_BATCH_ENTRIES: usize = 50;
 
 #[program]
 pub mod pinboard {
@@ -39,11 +45,12 @@ pub mod pinboard {
     /// Post multiple notes in a single transaction. Used by relayers
     /// and batching services to amortize the base tx fee across many
     /// notes.
-    pub fn post_batch(
-        _ctx: Context<PostBatch>,
-        entries: Vec<NoteEntry>,
-    ) -> Result<()> {
+    pub fn post_batch(_ctx: Context<PostBatch>, entries: Vec<NoteEntry>) -> Result<()> {
         require!(!entries.is_empty(), PinboardError::EmptyBatch);
+        require!(
+            entries.len() <= MAX_BATCH_ENTRIES,
+            PinboardError::BatchTooLarge
+        );
 
         for entry in entries.into_iter() {
             require!(
@@ -99,4 +106,6 @@ pub enum PinboardError {
     MetadataTooLong,
     #[msg("batch must contain at least one entry")]
     EmptyBatch,
+    #[msg("batch exceeds the maximum number of entries")]
+    BatchTooLarge,
 }

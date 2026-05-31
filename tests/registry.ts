@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, EventParser, BorshCoder } from "@coral-xyz/anchor";
-import { UmbraRegistry } from "../target/types/umbra_registry";
+import { Registry } from "../target/types/registry";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { expect } from "chai";
 
@@ -8,7 +8,7 @@ describe("registry", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.UmbraRegistry as Program<UmbraRegistry>;
+  const program = anchor.workspace.Registry as Program<Registry>;
 
   async function eventsFromTx(txSig: string) {
     await provider.connection.confirmTransaction(txSig, "confirmed");

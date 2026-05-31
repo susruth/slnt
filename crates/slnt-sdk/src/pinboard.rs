@@ -14,15 +14,26 @@ use solana_sdk::{
 };
 
 /// `SHA-256("global:post")[..8]`. Verified against `target/idl/pinboard.json`.
-pub const POST_DISCRIMINATOR: [u8; 8] =
-    [223, 96, 234, 236, 158, 106, 145, 94];
+pub const POST_DISCRIMINATOR: [u8; 8] = [223, 96, 234, 236, 158, 106, 145, 94];
+
+/// `SHA-256("global:post_batch")[..8]`.
+pub const POST_BATCH_DISCRIMINATOR: [u8; 8] = [172, 123, 234, 102, 14, 213, 76, 36];
 
 /// `SHA-256("event:Note")[..8]`.
-pub const NOTE_EVENT_DISCRIMINATOR: [u8; 8] =
-    [40, 182, 5, 151, 115, 43, 27, 97];
+pub const NOTE_EVENT_DISCRIMINATOR: [u8; 8] = [40, 182, 5, 151, 115, 43, 27, 97];
 
 #[derive(Debug, Clone, PartialEq, Eq, BorshSerialize, BorshDeserialize)]
 pub struct PostArgs {
+    pub scheme_id: u16,
+    pub ephemeral_pub: [u8; 32],
+    pub view_tag: u8,
+    pub metadata: Vec<u8>,
+}
+
+/// One entry of a `post_batch` call. Mirrors `NoteEntry` in
+/// `programs/pinboard/src/lib.rs`.
+#[derive(Debug, Clone, PartialEq, Eq, BorshSerialize, BorshDeserialize)]
+pub struct NoteEntry {
     pub scheme_id: u16,
     pub ephemeral_pub: [u8; 32],
     pub view_tag: u8,
@@ -47,10 +58,34 @@ pub fn build_post_instruction(
     view_tag: u8,
     metadata: Vec<u8>,
 ) -> Instruction {
-    let args = PostArgs { scheme_id, ephemeral_pub, view_tag, metadata };
+    let args = PostArgs {
+        scheme_id,
+        ephemeral_pub,
+        view_tag,
+        metadata,
+    };
     let mut data = Vec::with_capacity(8 + 2 + 32 + 1 + 4 + args.metadata.len());
     data.extend_from_slice(&POST_DISCRIMINATOR);
     borsh::to_writer(&mut data, &args).expect("borsh serialize PostArgs");
+    Instruction {
+        program_id: *pinboard_program_id,
+        accounts: vec![AccountMeta::new(*fee_payer, true)],
+        data,
+    }
+}
+
+/// Build a `pinboard.post_batch(...)` instruction (sRFC-0042 §5.5.1).
+///
+/// `entries` must be non-empty (the program rejects an empty batch);
+/// practical size is bounded by the transaction compute budget.
+pub fn build_post_batch_instruction(
+    pinboard_program_id: &Pubkey,
+    fee_payer: &Pubkey,
+    entries: Vec<NoteEntry>,
+) -> Instruction {
+    let mut data = Vec::with_capacity(8 + 4 + entries.len() * 40);
+    data.extend_from_slice(&POST_BATCH_DISCRIMINATOR);
+    borsh::to_writer(&mut data, &entries).expect("borsh serialize Vec<NoteEntry>");
     Instruction {
         program_id: *pinboard_program_id,
         accounts: vec![AccountMeta::new(*fee_payer, true)],
@@ -75,7 +110,7 @@ pub fn try_parse_note_log(line: &str) -> Result<Option<NoteEvent>, String> {
     if raw.len() < 8 {
         return Ok(None);
     }
-    if &raw[..8] != NOTE_EVENT_DISCRIMINATOR {
+    if raw[..8] != NOTE_EVENT_DISCRIMINATOR {
         return Ok(None);
     }
     let event = NoteEvent::try_from_slice(&raw[8..])
@@ -102,6 +137,44 @@ mod tests {
         h.update(b"event:Note");
         let computed = h.finalize();
         assert_eq!(&computed[..8], &NOTE_EVENT_DISCRIMINATOR);
+    }
+
+    #[test]
+    fn post_batch_discriminator_matches_anchor_convention() {
+        let mut h = Sha256::new();
+        h.update(b"global:post_batch");
+        let computed = h.finalize();
+        assert_eq!(&computed[..8], &POST_BATCH_DISCRIMINATOR);
+    }
+
+    #[test]
+    fn build_post_batch_roundtrips_entries() {
+        let program = Pubkey::new_unique();
+        let fee_payer = Pubkey::new_unique();
+        let entries = vec![
+            NoteEntry {
+                scheme_id: 1,
+                ephemeral_pub: [1u8; 32],
+                view_tag: 0x11,
+                metadata: vec![],
+            },
+            NoteEntry {
+                scheme_id: 1,
+                ephemeral_pub: [2u8; 32],
+                view_tag: 0x22,
+                metadata: vec![9, 9],
+            },
+        ];
+        let ix = build_post_batch_instruction(&program, &fee_payer, entries.clone());
+
+        assert_eq!(ix.program_id, program);
+        assert_eq!(ix.accounts.len(), 1);
+        assert!(ix.accounts[0].is_signer);
+        assert_eq!(&ix.data[..8], &POST_BATCH_DISCRIMINATOR);
+
+        // The borsh body must decode back to the same Vec<NoteEntry>.
+        let decoded: Vec<NoteEntry> = BorshDeserialize::try_from_slice(&ix.data[8..]).unwrap();
+        assert_eq!(decoded, entries);
     }
 
     #[test]

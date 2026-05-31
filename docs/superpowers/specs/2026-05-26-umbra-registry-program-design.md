@@ -1,8 +1,8 @@
-# Umbra Registry Program — Design Spec
+# Slnt Registry Program — Design Spec
 
 **Date:** 2026-05-26
 **Status:** Draft for review
-**Scope:** A second on-chain program (`umbra_registry`) that maps Solana wallet pubkeys to Umbra meta-addresses, closing the discovery gap identified against ERC-6538.
+**Scope:** A second on-chain program (`registry`) that maps Solana wallet pubkeys to Slnt meta-addresses, closing the discovery gap identified against ERC-6538.
 
 ---
 
@@ -10,7 +10,7 @@
 
 The v1 stealth-payments spec (`2026-05-20-umbra-solana-stealth-payments-v1-design.md`) intentionally keeps meta-addresses off-chain: users share them via QR codes, profiles, or DMs. This works but lacks an ERC-6538 analog — a sender who only knows the recipient's main Solana wallet pubkey has no on-chain path to discover the recipient's meta-address.
 
-`umbra_registry` adds that path as a separate, optional primitive. It is not required by the protocol: senders without registry knowledge continue using off-chain meta-address sharing exactly as before. With the registry, the flow becomes:
+`registry` adds that path as a separate, optional primitive. It is not required by the protocol: senders without registry knowledge continue using off-chain meta-address sharing exactly as before. With the registry, the flow becomes:
 
 1. Sender knows recipient's main Solana pubkey `A`.
 2. Sender derives the registry PDA from `A` and `scheme_id = 0x0001`.
@@ -22,7 +22,7 @@ The registry is deployed independently from `pinboard` and holds different state
 
 ## 2. Privacy and trade-offs
 
-Registering publicly reveals that a given main wallet has Umbra stealth capability. This is a deliberate trade-off — discovery UX in exchange for one bit of metadata. The protocol does not force registration; users who want to stay invisible continue using off-chain sharing.
+Registering publicly reveals that a given main wallet has Slnt stealth capability. This is a deliberate trade-off — discovery UX in exchange for one bit of metadata. The protocol does not force registration; users who want to stay invisible continue using off-chain sharing.
 
 The registry only accepts the *unlabeled* meta-address (`label_index = 0`). Labelled meta-addresses (spec §3.3) are meant for per-counterparty sharing and would leak relationship information if published publicly. The label policy is enforced on-chain (§5).
 
@@ -33,7 +33,7 @@ The registry stores `B_spend` and `B_scan` in the clear — exactly the same dat
 ## 3. Program shape
 
 - **Crate path:** `programs/registry`
-- **Anchor program name:** `umbra_registry`
+- **Anchor program name:** `registry`
 - **Deployment:** permissionless, immutable (no upgrade authority), no global program state, no admin.
 - **State:** one PDA per `(registrant, scheme_id)` pair.
 
@@ -216,7 +216,7 @@ pub struct MetaAddressClosed {
 
 ## 7. SDK additions
 
-Two helpers in `crates/umbra-sdk`:
+Two helpers in `crates/slnt-sdk`:
 
 ```rust
 /// Canonical registry PDA for a (registrant, scheme_id) pair.
@@ -286,4 +286,4 @@ No fuzzing needed — inputs are tightly typed and validations are equality chec
 ## 11. Open questions
 
 1. **Program deploy address.** Same as pinboard — probably immutable, vanity prefix for visibility. Coordinated with the pinboard deploy.
-2. **Whether SDKs should warn before registration.** The privacy trade-off (publishing that a wallet has Umbra capability) is mild but worth surfacing once on first use.
+2. **Whether SDKs should warn before registration.** The privacy trade-off (publishing that a wallet has Slnt capability) is mild but worth surfacing once on first use.

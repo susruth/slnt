@@ -1,0 +1,20 @@
+[package]
+name = "slnt-indexer"
+version = "0.1.0"
+edition = "2021"
+description = "Reference announcement indexer for Slnt (sRFC-0042 §5.10)"
+license = "Apache-2.0"
+
+[[bin]]
+name = "slnt-indexer"
+path = "src/main.rs"
+
+[dependencies]
+slnt-sdk = { path = "../slnt-sdk", features = ["net"] }
+solana-sdk = "2.3"
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bs58 = "0.5"
+clap = { version = "4", features = ["derive"] }

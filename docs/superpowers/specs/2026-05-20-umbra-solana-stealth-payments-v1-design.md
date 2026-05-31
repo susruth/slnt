@@ -1,4 +1,4 @@
-# Umbra: Stealth Payments for Solana — v1 Design Spec
+# Slnt: Stealth Payments for Solana — v1 Design Spec
 
 **Date:** 2026-05-20
 **Status:** Draft for review
@@ -8,7 +8,7 @@
 
 ## 1. Overview
 
-Umbra is a stealth-payment protocol for Solana. It is the Solana analog of
+Slnt is a stealth-payment protocol for Solana. It is the Solana analog of
 ERC-5564 (Ethereum) and BIP-352 (Bitcoin silent payments), adapted to
 Solana's account model, key types, and rent economics.
 
@@ -72,10 +72,10 @@ Anyone can send them funds such that:
 
 **Domain separation tags (used in all hash inputs):**
 
-- `"umbra-v1-derive"` — wallet key derivation
-- `"umbra-v1-tweak"` — stealth address tweak
-- `"umbra-v1-label"` — label tweak derivation
-- `"umbra-v1-memo"` — metadata encryption (if used)
+- `"slnt-v1-derive"` — wallet key derivation
+- `"slnt-v1-tweak"` — stealth address tweak
+- `"slnt-v1-label"` — label tweak derivation
+- `"slnt-v1-memo"` — metadata encryption (if used)
 
 All tags are ASCII bytes, included as a length-prefixed component to prevent
 ambiguity:
@@ -94,11 +94,11 @@ exposes seed material to dApps, and we need hardware-wallet compatibility.
 **Canonical message (exact UTF-8, no trailing newline):**
 
 ```
-Umbra Protocol: Derive Stealth Keys
+Slnt Protocol: Derive Stealth Keys
 
 Version: 1
 Network: <Mainnet|Devnet|Testnet>
-Warning: Only sign this message in the Umbra wallet or a trusted Umbra integration.
+Warning: Only sign this message in the Slnt wallet or a trusted Slnt integration.
 Signing this in any other context will reveal your stealth address scanning ability.
 ```
 
@@ -113,7 +113,7 @@ sig = WalletSign(canonical_message)    // 64-byte Ed25519 signature
 ikm = sig
 
 seed = HKDF-SHA256(
-  salt = "umbra-v1-derive",
+  salt = "slnt-v1-derive",
   ikm  = ikm,
   info = "spend-and-scan",
   length = 64
@@ -140,12 +140,12 @@ an anomalous signature that should be investigated).
 when the wallet implements it correctly, which all standard Solana wallets
 do. If a wallet ever produces non-deterministic Ed25519 signatures, the
 user's stealth identity becomes non-recoverable. Wallets that use
-randomized Ed25519 signing MUST NOT be supported by Umbra-compatible
+randomized Ed25519 signing MUST NOT be supported by Slnt-compatible
 clients.
 
 ### 3.2 Meta-address encoding
 
-Meta-addresses are bech32m-encoded with HRP `umbra` and the following
+Meta-addresses are bech32m-encoded with HRP `slnt` and the following
 payload:
 
 | Field | Size | Description |
@@ -157,9 +157,9 @@ payload:
 | `flags` | 1 byte | Reserved. `0x00` in v1. |
 
 Total payload: 67-71 bytes (66 fixed bytes + 1-5 varint bytes for the label
-index). Bech32m-encoded length: 120-126 characters (HRP `umbra` + separator
+index). Bech32m-encoded length: 120-126 characters (HRP `slnt` + separator
 `1` + 108-114 data chars + 6-char checksum).
-Example unlabeled: `umbra1qq...` (label_index = 0).
+Example unlabeled: `slnt1qq...` (label_index = 0).
 
 **Varint encoding:** unsigned LEB128 (continuation-bit format used by
 DWARF and protobuf). Chosen for ubiquity in TypeScript/Rust ecosystems
@@ -184,7 +184,7 @@ the relationship.
 ```
 m_i = SC25519_reduce(
   HKDF-SHA256(
-    salt = "umbra-v1-label",
+    salt = "slnt-v1-label",
     ikm  = b_scan_raw,
     info = "label-" || varint(i),
     length = 32
@@ -230,13 +230,13 @@ S = X25519(r, B_scan)                         // 32-byte shared secret
 
 // 3. View tag (first byte of H(S))
 view_tag = SHA-256(
-  len("umbra-v1-tweak") || "umbra-v1-tweak" || S
+  len("slnt-v1-tweak") || "slnt-v1-tweak" || S
 )[0]
 
 // 4. Tweak scalar for stealth-address derivation
 t = SC25519_reduce(
   SHA-256(
-    len("umbra-v1-tweak") || "umbra-v1-tweak" || S || [view_tag]
+    len("slnt-v1-tweak") || "slnt-v1-tweak" || S || [view_tag]
   )
 )
 
@@ -266,7 +266,7 @@ S_candidate = X25519(b_scan, R)
 
 // 2. Fast view-tag filter (rejects ~255/256 of false positives)
 vt_candidate = SHA-256(
-  len("umbra-v1-tweak") || "umbra-v1-tweak" || S_candidate
+  len("slnt-v1-tweak") || "slnt-v1-tweak" || S_candidate
 )[0]
 if vt_candidate != view_tag:
     continue  // not for us, skip
@@ -274,7 +274,7 @@ if vt_candidate != view_tag:
 // 3. Compute tweak (only for view-tag-matched candidates)
 t = SC25519_reduce(
   SHA-256(
-    len("umbra-v1-tweak") || "umbra-v1-tweak" || S_candidate || [view_tag]
+    len("slnt-v1-tweak") || "slnt-v1-tweak" || S_candidate || [view_tag]
   )
 )
 
@@ -319,20 +319,20 @@ does ~256k expensive ops total (still <1 minute on commodity hardware).
 
 ## 6. Pinboard Program
 
-Umbra publishes stealth-payment announcements onto a generic on-chain
+Slnt publishes stealth-payment announcements onto a generic on-chain
 primitive called **pinboard**: a single deployed Solana program that emits
 opaque tagged notes via Anchor events. Pinboard is permissionless and
 holds no state. It is designed to be reusable by any protocol that needs
 the "post tagged data publicly, recipients scan and recognize their own"
-shape — Umbra is its first consumer, but the contract itself is not
-Umbra-specific.
+shape — Slnt is its first consumer, but the contract itself is not
+Slnt-specific.
 
 ### 6.1 Instructions
 
 ```rust
 pub fn post(
     ctx: Context<Post>,
-    scheme_id: u16,        // 0x0001 for Umbra v1
+    scheme_id: u16,        // 0x0001 for Slnt v1
     ephemeral_pub: [u8; 32], // R
     view_tag: u8,
     metadata: Vec<u8>,     // max 64 bytes
@@ -353,7 +353,7 @@ pub struct NoteEntry {
 
 **Validation:**
 
-- `scheme_id` is recorded but not validated against a whitelist. Umbra v1
+- `scheme_id` is recorded but not validated against a whitelist. Slnt v1
   clients only process `0x0001`. Future schemes (and other protocols
   using pinboard) will be added by client updates.
 - `metadata.len()` ≤ 64 bytes per entry. Exceeding this causes the
@@ -461,18 +461,18 @@ Same shape as SPL, but the mint is the NFT mint. Additional considerations:
 - **Token-2022 with transfer hooks:** the hook program executes on
   transfer. If the hook reveals sender data (e.g., royalty distribution to
   a known creator address), this is a leak. SDKs SHOULD warn the user
-  before sending such tokens through Umbra.
+  before sending such tokens through Slnt.
 - **Identifiability:** A 1-of-1 NFT is intrinsically identifiable. If the
   NFT was publicly tied to the sender (e.g., minted by sender or
-  previously held by sender), sending it via Umbra leaks the sender
+  previously held by sender), sending it via Slnt leaks the sender
   identity even though the recipient is hidden. Wallets MUST surface a
   warning when sending an NFT the sender has previously held publicly.
 
 ### 7.4 Asset-agnostic structure
 
 In all three cases the sender's transaction is a normal Solana transfer to
-`stealth_ata` or `P_stealth`. No Umbra-specific instruction appears in the
-sender's tx. The Umbra protocol is invisible at the on-chain level until
+`stealth_ata` or `P_stealth`. No Slnt-specific instruction appears in the
+sender's tx. The Slnt protocol is invisible at the on-chain level until
 the announcement is published.
 
 ---
@@ -483,7 +483,7 @@ the announcement is published.
 
 1. Sender's wallet computes `(P_stealth, R, view_tag, metadata)`.
 2. Sender's wallet submits the asset-transfer tx to the chain (§7).
-   This tx does NOT contain any Umbra instruction.
+   This tx does NOT contain any Slnt instruction.
 3. Sender's wallet submits `(scheme_id, R, view_tag, metadata)` to an
    announcement service (§8.3).
 4. The service publishes the announcement on-chain via `post(...)` or
@@ -563,7 +563,7 @@ the same tx as the transfer. This is useful when no announcement service
 is reachable and the user prefers a single-tx flow over the
 self-announce-fallback retry pattern.
 
-Coupled mode trades on-chain unlinkability (the tx is visibly an Umbra
+Coupled mode trades on-chain unlinkability (the tx is visibly an Slnt
 payment) for trustless single-tx atomicity. Wallets MUST surface this
 trade-off to the user before using coupled mode.
 
@@ -709,7 +709,7 @@ alternative discovery path (§10.2 or §10.3).
 
 ### 10.2 Self-scan via indexer (HTTP protocol)
 
-Any party can host an indexer that retains Umbra announcements indefinitely
+Any party can host an indexer that retains Slnt announcements indefinitely
 and exposes them over HTTP. The indexer does NOT receive any scan keys;
 the recipient downloads announcements and runs the scan loop locally.
 
@@ -738,7 +738,7 @@ Response: { "indexed_through_slot": <u64>, "lag_seconds": <u32> }
 
 Indexers commit to retaining all announcements they ingest. The protocol
 defines correctness (faithfully report all pinboard-program invocations
-that carry an Umbra `scheme_id`) but not SLA. Multiple competing indexers
+that carry an Slnt `scheme_id`) but not SLA. Multiple competing indexers
 prevent ecosystem capture.
 
 **Privacy of the indexer query:** the indexer sees that someone polled
@@ -861,7 +861,7 @@ key:**
 - Cannot link a stealth address to the recipient's meta-address.
 - Cannot link two stealth addresses derived from the same meta-address to
   each other.
-- In decoupled mode, cannot identify a transfer as being an Umbra payment
+- In decoupled mode, cannot identify a transfer as being an Slnt payment
   (the transfer is indistinguishable from a normal transfer to a fresh
   address).
 - Even with the announcement event visible (any mode), cannot tell which
@@ -884,7 +884,7 @@ key:**
 - **NFT sender deanonymization:** sending an NFT publicly tied to the
   sender (minted by, previously held by) leaks sender identity.
 - **Coupled-mode tx pattern:** the sender's tx in coupled mode is visibly
-  an Umbra payment, narrowing the anonymity set.
+  an Slnt payment, narrowing the anonymity set.
 - **Fee-payer correlation:** the sender's wallet pays the fee for the
   transfer tx. Clustering attacks on fee-payer history can link the
   sender's stealth payments to the rest of their on-chain activity.
@@ -970,26 +970,26 @@ The v1 release will include:
 
 1. **Anchor program (`programs/pinboard`)**: the on-chain pinboard
    primitive with `post` and `post_batch` instructions. ~150 lines of
-   Rust. Umbra is its first consumer; the contract itself is generic.
-2. **Wallet SDK (`packages/umbra-sdk`, TypeScript)**:
+   Rust. Slnt is its first consumer; the contract itself is generic.
+2. **Wallet SDK (`packages/slnt-sdk`, TypeScript)**:
    - Key derivation from canonical signed message
    - Meta-address encode/decode (bech32m + label support)
    - Sender flow: derive stealth address, build asset-transfer tx
    - Decoupled announce + self-announce fallback
    - Recipient scan loop (logs and indexer modes)
    - Sweep tx construction with relayer integration
-3. **Reference indexer (`services/umbra-indexer`, Rust)**:
-   - Subscribes to pinboard program logs (filters by Umbra `scheme_id`)
+3. **Reference indexer (`services/slnt-indexer`, Rust)**:
+   - Subscribes to pinboard program logs (filters by Slnt `scheme_id`)
    - Serves the HTTP protocol from §10.2
    - SQLite-backed; runnable as a single binary
-4. **Reference announcement service (`services/umbra-publisher`,
+4. **Reference announcement service (`services/slnt-publisher`,
    Rust or TypeScript)**:
    - Receives announcement payloads, batches, submits on-chain via the
      pinboard `post_batch` instruction
    - HTTP protocol from §8.3
    - Stub payment model (no real economics; documented as not
      production-ready)
-5. **CLI tool (`bin/umbra`)**:
+5. **CLI tool (`bin/slnt`)**:
    - Generate meta-address from a wallet signature
    - Send via meta-address (SOL, SPL, NFT)
    - Scan for receipts
@@ -1011,7 +1011,7 @@ spec:
    and upgrades the canonical pinboard program? Probably immutable (no
    upgrade authority) once deployed. A vanity address prefix is planned
    so the production deploy is identifiable on sight.
-2. **Bech32m HRP collision.** The HRP `umbra` is not formally registered.
+2. **Bech32m HRP collision.** The HRP `slnt` is not formally registered.
    Should be verified against the SLIP-0173 registry.
 3. **Standard relayer pricing schema.** Whether the v1 spec should
    include a "relayer quote" RPC for wallets to discover relayers and

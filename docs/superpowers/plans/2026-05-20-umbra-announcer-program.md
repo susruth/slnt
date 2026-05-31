@@ -1,8 +1,8 @@
-# Umbra Announcer Program Implementation Plan
+# Slnt Announcer Program Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the on-chain Umbra announcer program — a permissionless Solana program with two instructions (`announce` and `announce_batch`) that emit `UmbraAnnouncement` events. Deploy to localnet and devnet with full test coverage.
+**Goal:** Build the on-chain Slnt announcer program — a permissionless Solana program with two instructions (`announce` and `announce_batch`) that emit `SlntAnnouncement` events. Deploy to localnet and devnet with full test coverage.
 
 **Architecture:** A single Anchor program with no on-chain state. Instructions validate input lengths and emit Anchor events (Borsh-serialized into transaction logs). Permissionless: no admin keys, no signer requirements beyond the fee payer.
 
@@ -39,9 +39,9 @@ If a fresh install is needed:
 **Files:**
 - Create: `Anchor.toml`
 - Create: `Cargo.toml` (workspace)
-- Create: `programs/umbra-announcer/Cargo.toml`
-- Create: `programs/umbra-announcer/Xargo.toml`
-- Create: `programs/umbra-announcer/src/lib.rs` (stub)
+- Create: `programs/slnt-announcer/Cargo.toml`
+- Create: `programs/slnt-announcer/Xargo.toml`
+- Create: `programs/slnt-announcer/src/lib.rs` (stub)
 - Create: `package.json`
 - Create: `tsconfig.json`
 - Create: `migrations/deploy.ts`
@@ -52,7 +52,7 @@ If a fresh install is needed:
 
 - [ ] **Step 1.1: Create `.gitignore`**
 
-Create `/Users/susruth/Documents/Projects/umbra/.gitignore`:
+Create `/Users/susruth/Documents/Projects/slnt/.gitignore`:
 
 ```
 .anchor
@@ -70,7 +70,7 @@ dist
 
 - [ ] **Step 1.2: Create workspace `Cargo.toml`**
 
-Create `/Users/susruth/Documents/Projects/umbra/Cargo.toml`:
+Create `/Users/susruth/Documents/Projects/slnt/Cargo.toml`:
 
 ```toml
 [workspace]
@@ -91,18 +91,18 @@ codegen-units = 1
 
 - [ ] **Step 1.3: Create program `Cargo.toml`**
 
-Create `/Users/susruth/Documents/Projects/umbra/programs/umbra-announcer/Cargo.toml`:
+Create `/Users/susruth/Documents/Projects/slnt/programs/slnt-announcer/Cargo.toml`:
 
 ```toml
 [package]
-name = "umbra-announcer"
+name = "slnt-announcer"
 version = "0.1.0"
-description = "Umbra protocol announcer program for Solana stealth payments (v1)"
+description = "Slnt protocol announcer program for Solana stealth payments (v1)"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "umbra_announcer"
+name = "slnt_announcer"
 
 [features]
 no-entrypoint = []
@@ -118,7 +118,7 @@ anchor-lang = "0.30.1"
 
 - [ ] **Step 1.4: Create `Xargo.toml`**
 
-Create `/Users/susruth/Documents/Projects/umbra/programs/umbra-announcer/Xargo.toml`:
+Create `/Users/susruth/Documents/Projects/slnt/programs/slnt-announcer/Xargo.toml`:
 
 ```toml
 [target.bpfel-unknown-unknown.dependencies.std]
@@ -127,7 +127,7 @@ features = []
 
 - [ ] **Step 1.5: Create stub `lib.rs`**
 
-Create `/Users/susruth/Documents/Projects/umbra/programs/umbra-announcer/src/lib.rs`:
+Create `/Users/susruth/Documents/Projects/slnt/programs/slnt-announcer/src/lib.rs`:
 
 ```rust
 use anchor_lang::prelude::*;
@@ -135,7 +135,7 @@ use anchor_lang::prelude::*;
 declare_id!("UmbrAnncr1111111111111111111111111111111111");
 
 #[program]
-pub mod umbra_announcer {
+pub mod slnt_announcer {
     use super::*;
 }
 ```
@@ -144,7 +144,7 @@ Note: `UmbrAnncr1111111111111111111111111111111111` is a vanity placeholder. We'
 
 - [ ] **Step 1.6: Create `Anchor.toml`**
 
-Create `/Users/susruth/Documents/Projects/umbra/Anchor.toml`:
+Create `/Users/susruth/Documents/Projects/slnt/Anchor.toml`:
 
 ```toml
 [toolchain]
@@ -155,10 +155,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-umbra_announcer = "UmbrAnncr1111111111111111111111111111111111"
+slnt_announcer = "UmbrAnncr1111111111111111111111111111111111"
 
 [programs.devnet]
-umbra_announcer = "UmbrAnncr1111111111111111111111111111111111"
+slnt_announcer = "UmbrAnncr1111111111111111111111111111111111"
 
 [registry]
 url = "https://api.apr.dev"
@@ -173,11 +173,11 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 - [ ] **Step 1.7: Create `package.json`**
 
-Create `/Users/susruth/Documents/Projects/umbra/package.json`:
+Create `/Users/susruth/Documents/Projects/slnt/package.json`:
 
 ```json
 {
-  "name": "umbra",
+  "name": "slnt",
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
@@ -205,7 +205,7 @@ Create `/Users/susruth/Documents/Projects/umbra/package.json`:
 
 - [ ] **Step 1.8: Create `tsconfig.json`**
 
-Create `/Users/susruth/Documents/Projects/umbra/tsconfig.json`:
+Create `/Users/susruth/Documents/Projects/slnt/tsconfig.json`:
 
 ```json
 {
@@ -226,7 +226,7 @@ Create `/Users/susruth/Documents/Projects/umbra/tsconfig.json`:
 
 - [ ] **Step 1.9: Create `migrations/deploy.ts`**
 
-Create `/Users/susruth/Documents/Projects/umbra/migrations/deploy.ts`:
+Create `/Users/susruth/Documents/Projects/slnt/migrations/deploy.ts`:
 
 ```typescript
 // Migrations are an early feature. Currently they're nothing more than
@@ -244,49 +244,49 @@ module.exports = async function (provider: anchor.AnchorProvider) {
 - [ ] **Step 1.10: Create tests directory placeholder**
 
 ```bash
-mkdir -p /Users/susruth/Documents/Projects/umbra/tests
-touch /Users/susruth/Documents/Projects/umbra/tests/.gitkeep
+mkdir -p /Users/susruth/Documents/Projects/slnt/tests
+touch /Users/susruth/Documents/Projects/slnt/tests/.gitkeep
 ```
 
 - [ ] **Step 1.11: Generate the program keypair**
 
-The program ID in `lib.rs` and `Anchor.toml` is a placeholder. Anchor builds will use whatever keypair is at `target/deploy/umbra_announcer-keypair.json`. We need to generate it once, extract its pubkey, and update the source.
+The program ID in `lib.rs` and `Anchor.toml` is a placeholder. Anchor builds will use whatever keypair is at `target/deploy/slnt_announcer-keypair.json`. We need to generate it once, extract its pubkey, and update the source.
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 mkdir -p target/deploy
-solana-keygen new --no-bip39-passphrase --silent --outfile target/deploy/umbra_announcer-keypair.json
-solana-keygen pubkey target/deploy/umbra_announcer-keypair.json
+solana-keygen new --no-bip39-passphrase --silent --outfile target/deploy/slnt_announcer-keypair.json
+solana-keygen pubkey target/deploy/slnt_announcer-keypair.json
 ```
 
 Capture the printed pubkey (base58, 43-44 chars). Then update:
 
-- `programs/umbra-announcer/src/lib.rs` — replace the `declare_id!` value
-- `Anchor.toml` — replace both `umbra_announcer = "..."` lines under `[programs.localnet]` and `[programs.devnet]`
+- `programs/slnt-announcer/src/lib.rs` — replace the `declare_id!` value
+- `Anchor.toml` — replace both `slnt_announcer = "..."` lines under `[programs.localnet]` and `[programs.devnet]`
 
 - [ ] **Step 1.12: Install JS deps and build**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 npm install
 anchor build
 ```
 
-Expected: `anchor build` produces `target/deploy/umbra_announcer.so` and `target/idl/umbra_announcer.json` without errors.
+Expected: `anchor build` produces `target/deploy/slnt_announcer.so` and `target/idl/slnt_announcer.json` without errors.
 
 If the build fails on a missing tool, install per the pre-flight section.
 
 - [ ] **Step 1.13: Initial commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 git add Anchor.toml Cargo.toml package.json tsconfig.json .gitignore \
-        programs/umbra-announcer/Cargo.toml \
-        programs/umbra-announcer/Xargo.toml \
-        programs/umbra-announcer/src/lib.rs \
+        programs/slnt-announcer/Cargo.toml \
+        programs/slnt-announcer/Xargo.toml \
+        programs/slnt-announcer/src/lib.rs \
         migrations/deploy.ts \
         tests/.gitkeep
-git commit -m "chore: scaffold Anchor workspace for umbra-announcer"
+git commit -m "chore: scaffold Anchor workspace for slnt-announcer"
 ```
 
 Note: `target/`, `node_modules/`, and the keypair under `target/deploy/` are gitignored. The keypair MUST be kept locally; losing it means re-deploying under a new program ID.
@@ -296,31 +296,31 @@ Note: `target/`, `node_modules/`, and the keypair under `target/deploy/` are git
 ## Task 2: Implement `announce` instruction (single event)
 
 **Files:**
-- Modify: `programs/umbra-announcer/src/lib.rs`
-- Create: `tests/umbra-announcer.ts`
+- Modify: `programs/slnt-announcer/src/lib.rs`
+- Create: `tests/slnt-announcer.ts`
 
-**Goal:** A single `announce(scheme_id, ephemeral_pub, view_tag, metadata)` instruction that emits exactly one `UmbraAnnouncement` event with the supplied fields.
+**Goal:** A single `announce(scheme_id, ephemeral_pub, view_tag, metadata)` instruction that emits exactly one `SlntAnnouncement` event with the supplied fields.
 
 ---
 
 - [ ] **Step 2.1: Write the failing test for single announce**
 
-Create `/Users/susruth/Documents/Projects/umbra/tests/umbra-announcer.ts`:
+Create `/Users/susruth/Documents/Projects/slnt/tests/slnt-announcer.ts`:
 
 ```typescript
 import * as anchor from "@coral-xyz/anchor";
 import { Program, EventParser, BorshCoder } from "@coral-xyz/anchor";
-import { UmbraAnnouncer } from "../target/types/umbra_announcer";
+import { SlntAnnouncer } from "../target/types/slnt_announcer";
 import { expect } from "chai";
 
-describe("umbra-announcer", () => {
+describe("slnt-announcer", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.UmbraAnnouncer as Program<UmbraAnnouncer>;
+  const program = anchor.workspace.SlntAnnouncer as Program<SlntAnnouncer>;
 
   /**
-   * Submit a tx, fetch its logs, and return all parsed Umbra events.
+   * Submit a tx, fetch its logs, and return all parsed Slnt events.
    */
   async function eventsFromTx(txSig: string) {
     // Wait for confirmation, then re-fetch with the logs.
@@ -339,7 +339,7 @@ describe("umbra-announcer", () => {
     return [...parser.parseLogs(tx.meta.logMessages)];
   }
 
-  it("emits exactly one UmbraAnnouncement for a single announce", async () => {
+  it("emits exactly one SlntAnnouncement for a single announce", async () => {
     const ephemeralPub = Buffer.from(
       "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
       "hex"
@@ -352,7 +352,7 @@ describe("umbra-announcer", () => {
 
     const events = await eventsFromTx(txSig);
     expect(events).to.have.length(1);
-    expect(events[0].name).to.equal("UmbraAnnouncement");
+    expect(events[0].name).to.equal("SlntAnnouncement");
 
     const data = events[0].data as {
       schemeId: number;
@@ -371,24 +371,24 @@ describe("umbra-announcer", () => {
 - [ ] **Step 2.2: Run the test to verify it fails**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
 Expected failure mode: `anchor build` succeeds (the program is a valid empty Anchor module), then the TypeScript test compile fails with something like:
 
 ```
-tests/umbra-announcer.ts:35:32 - error TS2339:
-  Property 'announce' does not exist on type 'MethodsNamespace<UmbraAnnouncer>'
+tests/slnt-announcer.ts:35:32 - error TS2339:
+  Property 'announce' does not exist on type 'MethodsNamespace<SlntAnnouncer>'
 ```
 
-This is because the IDL Anchor just generated has no `announce` instruction yet, so the generated TS type at `target/types/umbra_announcer.ts` does not expose that method.
+This is because the IDL Anchor just generated has no `announce` instruction yet, so the generated TS type at `target/types/slnt_announcer.ts` does not expose that method.
 
 If `anchor test` complains about the test validator not being able to start, run `solana-test-validator` once in another terminal and retry — Anchor's test harness usually handles this automatically, but networking quirks vary by machine.
 
-- [ ] **Step 2.3: Implement the `announce` instruction and `UmbraAnnouncement` event**
+- [ ] **Step 2.3: Implement the `announce` instruction and `SlntAnnouncement` event**
 
-Modify `/Users/susruth/Documents/Projects/umbra/programs/umbra-announcer/src/lib.rs`.
+Modify `/Users/susruth/Documents/Projects/slnt/programs/slnt-announcer/src/lib.rs`.
 
 **Important:** keep the existing `declare_id!(...)` line (the program pubkey you set in Step 1.11) — do not overwrite it. The full file should look like the following, with `<YOUR_PROGRAM_ID>` left as you set it in Step 1.11:
 
@@ -402,7 +402,7 @@ declare_id!("<YOUR_PROGRAM_ID>");
 pub const MAX_METADATA_LEN: usize = 64;
 
 #[program]
-pub mod umbra_announcer {
+pub mod slnt_announcer {
     use super::*;
 
     /// Publish a single stealth-payment announcement.
@@ -418,10 +418,10 @@ pub mod umbra_announcer {
     ) -> Result<()> {
         require!(
             metadata.len() <= MAX_METADATA_LEN,
-            UmbraError::MetadataTooLong
+            SlntError::MetadataTooLong
         );
 
-        emit!(UmbraAnnouncement {
+        emit!(SlntAnnouncement {
             scheme_id,
             ephemeral_pub,
             view_tag,
@@ -441,7 +441,7 @@ pub struct Announce<'info> {
 }
 
 #[event]
-pub struct UmbraAnnouncement {
+pub struct SlntAnnouncement {
     pub scheme_id: u16,
     pub ephemeral_pub: [u8; 32],
     pub view_tag: u8,
@@ -449,7 +449,7 @@ pub struct UmbraAnnouncement {
 }
 
 #[error_code]
-pub enum UmbraError {
+pub enum SlntError {
     #[msg("metadata exceeds 64 bytes")]
     MetadataTooLong,
 }
@@ -458,19 +458,19 @@ pub enum UmbraError {
 - [ ] **Step 2.4: Run the test to verify it now passes**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
-Expected: 1 passing test. The test name should match `emits exactly one UmbraAnnouncement for a single announce`.
+Expected: 1 passing test. The test name should match `emits exactly one SlntAnnouncement for a single announce`.
 
 If a `Signer<'info>` constraint error appears in the test (Anchor 0.30 sometimes requires explicit `accounts(...)` builder calls when the program has signers), modify the test's `program.methods.announce(...)` call to include an `.accounts({ feePayer: provider.wallet.publicKey })` chain before `.rpc()`. The Anchor TS client usually auto-fills the signer from the provider, but be explicit if it errors.
 
 - [ ] **Step 2.5: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add programs/umbra-announcer/src/lib.rs tests/umbra-announcer.ts
+cd /Users/susruth/Documents/Projects/slnt
+git add programs/slnt-announcer/src/lib.rs tests/slnt-announcer.ts
 git commit -m "feat(announcer): implement announce instruction with event emission"
 ```
 
@@ -479,7 +479,7 @@ git commit -m "feat(announcer): implement announce instruction with event emissi
 ## Task 3: Reject oversized metadata
 
 **Files:**
-- Modify: `tests/umbra-announcer.ts` (add test case)
+- Modify: `tests/slnt-announcer.ts` (add test case)
 
 **Goal:** Confirm the `MetadataTooLong` error fires when metadata exceeds 64 bytes, and that 64-byte exact-fit succeeds.
 
@@ -487,7 +487,7 @@ git commit -m "feat(announcer): implement announce instruction with event emissi
 
 - [ ] **Step 3.1: Write the failing test for 65-byte metadata**
 
-Add inside the `describe("umbra-announcer", ...)` block in `tests/umbra-announcer.ts`, after the existing `it(...)`:
+Add inside the `describe("slnt-announcer", ...)` block in `tests/slnt-announcer.ts`, after the existing `it(...)`:
 
 ```typescript
   it("rejects metadata longer than 64 bytes", async () => {
@@ -539,7 +539,7 @@ Add inside the `describe("umbra-announcer", ...)` block in `tests/umbra-announce
 - [ ] **Step 3.2: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
@@ -548,8 +548,8 @@ Expected: 4 passing tests. The metadata-validation logic is already in `lib.rs` 
 - [ ] **Step 3.3: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add tests/umbra-announcer.ts
+cd /Users/susruth/Documents/Projects/slnt
+git add tests/slnt-announcer.ts
 git commit -m "test(announcer): cover metadata length boundary cases"
 ```
 
@@ -558,16 +558,16 @@ git commit -m "test(announcer): cover metadata length boundary cases"
 ## Task 4: Implement `announce_batch` instruction
 
 **Files:**
-- Modify: `programs/umbra-announcer/src/lib.rs`
-- Modify: `tests/umbra-announcer.ts`
+- Modify: `programs/slnt-announcer/src/lib.rs`
+- Modify: `tests/slnt-announcer.ts`
 
-**Goal:** A second instruction `announce_batch(entries: Vec<AnnouncementEntry>)` that emits one `UmbraAnnouncement` event per entry.
+**Goal:** A second instruction `announce_batch(entries: Vec<AnnouncementEntry>)` that emits one `SlntAnnouncement` event per entry.
 
 ---
 
 - [ ] **Step 4.1: Write the failing test for batch announce**
 
-Add inside the `describe("umbra-announcer", ...)` block in `tests/umbra-announcer.ts`, after the previous tests:
+Add inside the `describe("slnt-announcer", ...)` block in `tests/slnt-announcer.ts`, after the previous tests:
 
 ```typescript
   it("emits one event per entry for announce_batch", async () => {
@@ -606,7 +606,7 @@ Add inside the `describe("umbra-announcer", ...)` block in `tests/umbra-announce
         viewTag: number;
         metadata: Buffer;
       };
-      expect(events[i].name).to.equal("UmbraAnnouncement");
+      expect(events[i].name).to.equal("SlntAnnouncement");
       expect(data.schemeId).to.equal(entries[i].schemeId);
       expect(Buffer.from(data.ephemeralPub)).to.deep.equal(
         Buffer.from(entries[i].ephemeralPub)
@@ -620,7 +620,7 @@ Add inside the `describe("umbra-announcer", ...)` block in `tests/umbra-announce
 - [ ] **Step 4.2: Run the test to verify it fails**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
@@ -628,11 +628,11 @@ Expected: build fails with `cannot find method announceBatch` or `cannot find st
 
 - [ ] **Step 4.3: Implement the batch instruction**
 
-Modify `/Users/susruth/Documents/Projects/umbra/programs/umbra-announcer/src/lib.rs`. Replace the entire `#[program]` module with:
+Modify `/Users/susruth/Documents/Projects/slnt/programs/slnt-announcer/src/lib.rs`. Replace the entire `#[program]` module with:
 
 ```rust
 #[program]
-pub mod umbra_announcer {
+pub mod slnt_announcer {
     use super::*;
 
     /// Publish a single stealth-payment announcement.
@@ -645,10 +645,10 @@ pub mod umbra_announcer {
     ) -> Result<()> {
         require!(
             metadata.len() <= MAX_METADATA_LEN,
-            UmbraError::MetadataTooLong
+            SlntError::MetadataTooLong
         );
 
-        emit!(UmbraAnnouncement {
+        emit!(SlntAnnouncement {
             scheme_id,
             ephemeral_pub,
             view_tag,
@@ -665,15 +665,15 @@ pub mod umbra_announcer {
         _ctx: Context<AnnounceBatch>,
         entries: Vec<AnnouncementEntry>,
     ) -> Result<()> {
-        require!(!entries.is_empty(), UmbraError::EmptyBatch);
+        require!(!entries.is_empty(), SlntError::EmptyBatch);
 
         for entry in entries.into_iter() {
             require!(
                 entry.metadata.len() <= MAX_METADATA_LEN,
-                UmbraError::MetadataTooLong
+                SlntError::MetadataTooLong
             );
 
-            emit!(UmbraAnnouncement {
+            emit!(SlntAnnouncement {
                 scheme_id: entry.scheme_id,
                 ephemeral_pub: entry.ephemeral_pub,
                 view_tag: entry.view_tag,
@@ -706,11 +706,11 @@ pub struct AnnouncementEntry {
 }
 ```
 
-Update the `UmbraError` enum to add the new variant:
+Update the `SlntError` enum to add the new variant:
 
 ```rust
 #[error_code]
-pub enum UmbraError {
+pub enum SlntError {
     #[msg("metadata exceeds 64 bytes")]
     MetadataTooLong,
     #[msg("batch must contain at least one entry")]
@@ -721,7 +721,7 @@ pub enum UmbraError {
 - [ ] **Step 4.4: Run the test to verify it passes**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
@@ -730,8 +730,8 @@ Expected: 5 passing tests, including the new batch test.
 - [ ] **Step 4.5: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add programs/umbra-announcer/src/lib.rs tests/umbra-announcer.ts
+cd /Users/susruth/Documents/Projects/slnt
+git add programs/slnt-announcer/src/lib.rs tests/slnt-announcer.ts
 git commit -m "feat(announcer): add announce_batch instruction"
 ```
 
@@ -740,7 +740,7 @@ git commit -m "feat(announcer): add announce_batch instruction"
 ## Task 5: Batch edge cases (empty batch, per-entry validation)
 
 **Files:**
-- Modify: `tests/umbra-announcer.ts`
+- Modify: `tests/slnt-announcer.ts`
 
 **Goal:** Confirm that an empty batch is rejected with `EmptyBatch`, and that per-entry metadata validation fires inside a batch.
 
@@ -822,17 +822,17 @@ Add inside the `describe(...)` block, after the previous tests:
 - [ ] **Step 5.2: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
-Expected: 8 passing tests. The validation logic from Task 4 already enforces these constraints, so no implementation change should be needed. If the `EmptyBatch` test fails, double-check that `require!(!entries.is_empty(), UmbraError::EmptyBatch)` exists at the top of `announce_batch`.
+Expected: 8 passing tests. The validation logic from Task 4 already enforces these constraints, so no implementation change should be needed. If the `EmptyBatch` test fails, double-check that `require!(!entries.is_empty(), SlntError::EmptyBatch)` exists at the top of `announce_batch`.
 
 - [ ] **Step 5.3: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add tests/umbra-announcer.ts
+cd /Users/susruth/Documents/Projects/slnt
+git add tests/slnt-announcer.ts
 git commit -m "test(announcer): cover batch edge cases (empty, per-entry validation)"
 ```
 
@@ -841,7 +841,7 @@ git commit -m "test(announcer): cover batch edge cases (empty, per-entry validat
 ## Task 6: Idempotency / no-state sanity tests
 
 **Files:**
-- Modify: `tests/umbra-announcer.ts`
+- Modify: `tests/slnt-announcer.ts`
 
 **Goal:** Confirm the program holds no state — the same `(scheme_id, R, view_tag, metadata)` can be announced twice without conflict, and the second announcement also emits an event. Also confirm `scheme_id = 0` is permitted (program does not validate the scheme ID per spec §6.1).
 
@@ -906,7 +906,7 @@ Add inside the `describe(...)` block, after the previous tests:
 - [ ] **Step 6.2: Run the tests**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
@@ -915,8 +915,8 @@ Expected: 11 passing tests. All should pass without code changes (the program al
 - [ ] **Step 6.3: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add tests/umbra-announcer.ts
+cd /Users/susruth/Documents/Projects/slnt
+git add tests/slnt-announcer.ts
 git commit -m "test(announcer): cover idempotency and scheme_id permissiveness"
 ```
 
@@ -925,7 +925,7 @@ git commit -m "test(announcer): cover idempotency and scheme_id permissiveness"
 ## Task 7: Larger batch capacity test
 
 **Files:**
-- Modify: `tests/umbra-announcer.ts`
+- Modify: `tests/slnt-announcer.ts`
 
 **Goal:** Verify the program handles a realistic batch size. The spec target is ~50 entries per batch (limited by Solana's CU budget, not by program logic). We test 20 to stay well under the limit while confirming non-trivial batches work.
 
@@ -965,7 +965,7 @@ Add inside the `describe(...)` block:
 - [ ] **Step 7.2: Run the test**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
@@ -976,8 +976,8 @@ If this fails with a compute-unit (CU) limit error, the per-entry CU cost is hig
 - [ ] **Step 7.3: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add tests/umbra-announcer.ts
+cd /Users/susruth/Documents/Projects/slnt
+git add tests/slnt-announcer.ts
 git commit -m "test(announcer): verify batch of 20 entries succeeds"
 ```
 
@@ -986,7 +986,7 @@ git commit -m "test(announcer): verify batch of 20 entries succeeds"
 ## Task 8: Program README and deployment notes
 
 **Files:**
-- Create: `programs/umbra-announcer/README.md`
+- Create: `programs/slnt-announcer/README.md`
 
 **Goal:** Document the program's purpose, instruction interface, deployment procedure, and the canonical program ID for downstream consumers (SDK, indexer, service).
 
@@ -994,12 +994,12 @@ git commit -m "test(announcer): verify batch of 20 entries succeeds"
 
 - [ ] **Step 8.1: Write the README**
 
-Create `/Users/susruth/Documents/Projects/umbra/programs/umbra-announcer/README.md`:
+Create `/Users/susruth/Documents/Projects/slnt/programs/slnt-announcer/README.md`:
 
 ```markdown
-# umbra-announcer
+# slnt-announcer
 
-The on-chain announcer program for the Umbra stealth-payments protocol on
+The on-chain announcer program for the Slnt stealth-payments protocol on
 Solana. See the v1 design spec at
 `docs/superpowers/specs/2026-05-20-umbra-solana-stealth-payments-v1-design.md`
 for full protocol details.
@@ -1014,7 +1014,7 @@ instructions:
 - `announce_batch(entries)` — publishes N announcements in one transaction,
   used by announcement services to amortize the base tx fee.
 
-Both instructions emit `UmbraAnnouncement` events. The program holds no
+Both instructions emit `SlntAnnouncement` events. The program holds no
 state; the same announcement can be published multiple times without
 conflict (recipients deduplicate by R themselves).
 
@@ -1050,7 +1050,7 @@ to 20 in CI; production services should benchmark on target validators.
 
 ```rust
 #[event]
-pub struct UmbraAnnouncement {
+pub struct SlntAnnouncement {
     pub scheme_id: u16,
     pub ephemeral_pub: [u8; 32],
     pub view_tag: u8,
@@ -1078,8 +1078,8 @@ anchor build
 ```
 
 Outputs:
-- `target/deploy/umbra_announcer.so` — the program binary
-- `target/idl/umbra_announcer.json` — the IDL consumed by clients
+- `target/deploy/slnt_announcer.so` — the program binary
+- `target/idl/slnt_announcer.json` — the IDL consumed by clients
 
 ## Test
 
@@ -1114,7 +1114,7 @@ final deployment is made.
 
 | Network | Program ID |
 |---|---|
-| Localnet (dev) | (your local keypair; see `target/deploy/umbra_announcer-keypair.json`) |
+| Localnet (dev) | (your local keypair; see `target/deploy/slnt_announcer-keypair.json`) |
 | Devnet | TBD — populated on first devnet deployment |
 | Mainnet | TBD — populated on first mainnet deployment |
 ```
@@ -1122,8 +1122,8 @@ final deployment is made.
 - [ ] **Step 8.2: Commit**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
-git add programs/umbra-announcer/README.md
+cd /Users/susruth/Documents/Projects/slnt
+git add programs/slnt-announcer/README.md
 git commit -m "docs(announcer): add program README with instruction reference"
 ```
 
@@ -1140,7 +1140,7 @@ git commit -m "docs(announcer): add program README with instruction reference"
 - [ ] **Step 9.1: Clean rebuild**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor clean
 rm -rf node_modules
 npm install
@@ -1152,7 +1152,7 @@ Expected: clean build with no warnings (other than possibly unused-import warnin
 - [ ] **Step 9.2: Run full test suite**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 anchor test
 ```
 
@@ -1161,7 +1161,7 @@ Expected: 12 passing tests. If anything fails, do not move on — diagnose the f
 - [ ] **Step 9.3: Lint check**
 
 ```bash
-cd /Users/susruth/Documents/Projects/umbra
+cd /Users/susruth/Documents/Projects/slnt
 npm run lint
 ```
 
@@ -1177,14 +1177,14 @@ is useful to do this now.
 solana config set --url https://api.devnet.solana.com
 solana airdrop 2  # if balance < 2 SOL
 anchor deploy --provider.cluster devnet
-solana-keygen pubkey target/deploy/umbra_announcer-keypair.json
+solana-keygen pubkey target/deploy/slnt_announcer-keypair.json
 ```
 
-Record the program ID. Update `programs/umbra-announcer/README.md`'s
+Record the program ID. Update `programs/slnt-announcer/README.md`'s
 "Program ID" table with the devnet address and commit:
 
 ```bash
-git add programs/umbra-announcer/README.md
+git add programs/slnt-announcer/README.md
 git commit -m "docs(announcer): record devnet program ID"
 ```
 
@@ -1203,5 +1203,5 @@ After completing all tasks:
   is ready) mainnet with no further changes required
 
 The next implementation plan (SDK) will assume this program is deployed
-to devnet and will consume the IDL at `target/idl/umbra_announcer.json`
+to devnet and will consume the IDL at `target/idl/slnt_announcer.json`
 plus the program ID.
