@@ -10,7 +10,7 @@
 | **Category** | Interface / Application |
 | **Created** | 2026-05-31 |
 | **Requires** | Ed25519, X25519, SHA-256, HKDF-SHA256, bech32m |
-| **Reference deployments** | `pinboard`: `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` · `registry`: `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` |
+| **Reference deployments** | `pinboard`: `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` · `registry`: `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (vanity prefixes: `SLNTP…` = **P**inboard, `SLNTR…` = **R**egistry) |
 
 ---
 
@@ -286,7 +286,7 @@ The view tag bounds scan cost: ~1/256 announcements survive the filter, after wh
 
 SLNT announcements are published on **pinboard**, a permissionless, stateless Solana program that emits opaque tagged notes as Anchor events. Pinboard is generic (not SLNT-specific) and is SLNT's first consumer. It is the Solana analog of the ERC-5564 `Announcer`.
 
-**Reference deployment:** `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (immutable, no upgrade authority).
+**Reference deployment:** `SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2` (immutable, no upgrade authority). The vanity prefix `SLNTP…` — **P** for **p**inboard — makes the canonical program recognizable on sight.
 
 #### 5.5.1 Instructions
 
@@ -333,7 +333,7 @@ Total 47–111 bytes. The Anchor 0.31 IDL camelCases the event name; log parsers
 
 The **registry** maps a main Solana wallet pubkey to its SLNT meta-address, closing the discovery gap. It is the Solana analog of ERC-6538. It is **OPTIONAL**: senders may always share meta-addresses off-chain (QR, profile, DM). It is deployed independently of pinboard and shares no code or state.
 
-**Reference deployment:** `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (immutable, no upgrade authority, no admin).
+**Reference deployment:** `SLNTRCsjJXUQM3UbHjgJ48xe4GjKFSiLmrF1mXA8Vn2` (immutable, no upgrade authority, no admin). The vanity prefix `SLNTR…` — **R** for **r**egistry — makes the canonical program recognizable on sight.
 
 #### 5.6.1 PDA and account
 
@@ -548,7 +548,7 @@ Cross-chain unified meta-addresses (new encoding `version`); post-quantum scheme
 
 ## 12. Open Questions
 
-1. **Canonical deploy authority.** Both programs are intended to be immutable (no upgrade authority) with vanity `SLNT…` prefixes for on-sight recognition. Final mainnet addresses and the renounce procedure are TBD.
+1. **Canonical deploy authority.** Both programs are intended to be immutable (no upgrade authority). The reference deployments use vanity prefixes for on-sight recognition under the shared `SLNT` brand: `SLNTP…` for pinboard (**P**) and `SLNTR…` for registry (**R**). Final mainnet addresses and the renounce procedure are TBD.
 2. **HRP registration.** The bech32m HRP `slnt` should be registered against SLIP-0173 to avoid collision.
 3. **Relayer discovery/pricing.** Whether v1.1 should standardize a relayer quote RPC.
 4. **Encrypted-metadata standard.** Whether to standardize a memo scheme keyed by `S` (`slnt-v1-memo`) in v1.1.
