@@ -118,24 +118,6 @@ The derived stealth address is a normal Ed25519 Solana address, so it can receiv
 
 ---
 
-## What This Draft Does Not Standardize
-
-This draft does not attempt to standardize:
-
-- Amount privacy.
-- Asset-type privacy.
-- Sender anonymity.
-- Cross-chain meta-addresses.
-- Encrypted memos.
-- Multi-recipient announcements.
-- Relayer economics.
-- A canonical hosted announcement service.
-- A final mainnet deployment address.
-
-Those may be separate follow-up discussions if the core standard is useful.
-
----
-
 ## Feedback Requested
 
 I would especially like feedback from:
