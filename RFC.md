@@ -311,22 +311,6 @@ The derived stealth address is a normal Solana address.
 
 This allows SLNT to support SOL, SPL tokens, and NFTs without requiring new token programs or special transfer instructions. The complexity is pushed into sender derivation, recipient scanning, and sweeping.
 
-## What This Draft Does Not Standardize
-
-This draft does not attempt to standardize:
-
-- Amount privacy.
-- Asset-type privacy.
-- Sender anonymity.
-- Encrypted memos.
-- Relayer incentives.
-- A canonical hosted announcement service.
-- A final mainnet deployment address.
-- Cross-chain meta-addresses.
-- Multi-recipient payments.
-
-Some of these may be useful future extensions, but including them in the first standard would make the core proposal harder to evaluate.
-
 ## Feedback Requested
 
 I would especially like feedback on the following questions:
