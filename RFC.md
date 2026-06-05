@@ -1,24 +1,28 @@
-# sRFC-0042: SLNT - Silent Payments for Solana
+# sRFC-0042: Silent Payments for Solana
 
 ## Summary
 
-Solana does not currently have a standard way for a user to publish one reusable receiving identifier while keeping individual incoming payments unlinkable from that identifier.
+In today's on-chain economy, publishing a receiving address often means exposing far more information than intended. Anyone can view your balance, trace incoming payments, and analyze relationships between senders and receivers.
 
-Today, users have two unsatisfying options:
+To enable payments to flourish on Solana, we need a mechanism that allows a public receiving interface without revealing linkable payment addresses.
 
-1. Reuse one public Solana address and expose their balance, counterparties, and payment history.
-2. Coordinate fresh addresses out of band for every payment, which is poor UX and difficult for wallets and applications to support consistently.
+This RFC proposes a Solana-native silent payment standard. The high-level flow is:
 
-SLNT proposes a Solana-native silent payment standard. A recipient publishes a reusable SLNT meta-address. A sender uses that meta-address to derive a fresh one-time Solana address for each payment. The sender transfers SOL, SPL tokens, or NFTs using normal Solana transfer flows, then posts a small announcement that lets the recipient discover the payment.
+1. A recipient publishes a reusable meta-address.
+2. A sender uses that meta-address to derive a fresh one-time Solana address for each payment.
+3. The sender transfers assets using normal Solana transfer flows, then posts a small announcement that lets the recipient discover the payment.
 
-The supporting on-chain components are:
-
-- **Pinboard:** a permissionless announcement program that emits discovery events.
-- **Registry:** an optional meta-address registry that maps an existing Solana wallet to an SLNT meta-address.
-
-The goal of this sRFC is to standardize the wallet and application interface for silent payments on Solana. It is not intended to make any hosted service, registry deployment, relayer, indexer, or implementation repository canonical.
+The goal of this sRFC is to standardize the wallet and application interface for these payments.
 
 ## Motivation
+
+Reusable Solana addresses create a privacy and UX tradeoff. If a user publishes one wallet address, every incoming payment to that address becomes part of the same public graph. Observers can inspect balances, counterparties, payment timing, token types, and historical activity.
+
+Generating a fresh address for every payment improves privacy, but requires coordination between the sender and recipient. That does not compose well with existing systems.
+
+Thus, we should try to preserve the useful part of a public receiving address: one stable identifier that people and apps can use. The difference is that this identifier is not itself the destination of funds. Instead, it lets each sender derive a unique Solana address for that payment.
+
+## Existing vs. Proposed Design
 
 ```mermaid
 flowchart LR
@@ -55,27 +59,7 @@ flowchart LR
   class A1,B1,C1 neutral;
 ```
 
-Reusable Solana addresses create a privacy and UX tradeoff. If a creator, merchant, DAO contributor, or employee publishes one wallet address, every incoming payment to that address becomes part of the same public graph. Observers can inspect balances, counterparties, payment timing, token types, and historical activity.
-
-Generating a fresh address for every payment improves privacy, but requires coordination between sender and recipient. That does not compose well with wallets, payment links, profiles, checkout flows, payroll systems, or donation pages.
-
-SLNT tries to preserve the useful part of a public receiving address: one stable identifier that people and apps can use. The difference is that this identifier is not itself the destination of funds. Instead, it lets each sender derive a unique Solana address for that payment.
-
-## What This Draft Standardizes
-
-This draft proposes a standard for:
-
-- The SLNT meta-address format.
-- Sender-side derivation of a fresh stealth address.
-- Recipient-side scanning and recognition using a scan key.
-- The Pinboard announcement model.
-- Sweep behavior for moving funds out of one-time addresses.
-- Optional Registry support for mapping known Solana wallets to SLNT meta-addresses.
-- The minimal on-chain program interface for Pinboard and Registry.
-
-The intent is to define a common wallet and application interface, not to require one specific product or infrastructure provider.
-
-## Core Flow
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -122,17 +106,15 @@ flowchart LR
   style discovery fill:#fff7ed,stroke:#f97316,stroke-width:1px;
 ```
 
-SLNT separates payment from discovery.
+Notes:
 
-The asset transfer is a normal transfer to a fresh Solana address. The announcement carries only discovery data. The recipient uses their scan key to connect the two paths and sweep the funds.
+- The asset transfer is a normal transfer to a fresh Solana address.
+- The announcement carries only discovery data.
+- The recipient uses their scan key to connect the two paths and sweep the funds.
 
-This does **not** provide amount privacy, asset-type privacy, sender anonymity, network-level privacy, or complete protection against timing correlation. The narrower privacy claim is: the payment transaction itself does not reveal the recipient's reusable meta-address, and observers without the scan key cannot directly link stealth addresses to that meta-address.
+### Pinboard
 
-## Pinboard
-
-SLNT needs a way for recipients to discover payments sent to fresh stealth addresses. The sender can transfer assets normally, but the recipient still needs discovery data in order to recognize which stealth addresses belong to them.
-
-Pinboard is the proposed announcement surface for this discovery data.
+For recipients to discover payments sent to fresh stealth addresses, we create a Pinboard (or announcement surface) for this discovery data.
 
 A Pinboard announcement contains the public values needed for recipient scanning:
 
@@ -141,14 +123,12 @@ A Pinboard announcement contains the public values needed for recipient scanning
 - `view_tag`, a short filter used to reject non-matching announcements cheaply.
 - `metadata`, an opaque field for minimal implementation-defined context.
 
-Pinboard does not custody funds, route payments, or act as a relayer for the asset transfer. The asset transfer and the announcement are separate.
-
-This separation gives SLNT two useful properties:
+Pinboard does not route payments or act as a relayer for the asset transfer. We intentionally keep asset transfer and announcements separate to give us two useful properties:
 
 - The payment transaction can remain a normal Solana transfer.
 - Wallets and indexers can scan a common announcement stream instead of searching the entire chain for possible stealth payments.
 
-Pinboard should be treated as an announcement layer, not as the privacy mechanism itself. Privacy comes from the derivation scheme and the recipient's scan key. Pinboard only makes discovery practical.
+Pinboard should be treated as an announcement layer, not as the privacy mechanism itself. Privacy comes from the derivation scheme and the recipient's scan key.
 
 The reference implementation uses a small, stateless Anchor program for Pinboard. The candidate program ID is:
 
@@ -156,7 +136,7 @@ The reference implementation uses a small, stateless Anchor program for Pinboard
 SLNTPDxgFKwSZ31CbbdSKKHyRpBpKjEMYVj2gpGxkN2
 ```
 
-This ID is useful for discussion and testing, but this sRFC should not depend on a final mainnet deployment until the interface is reviewed, audited, and finalized.
+This sRFC should not depend on a final mainnet deployment until the interface is reviewed, audited, and finalized.
 
 Pinboard instructions:
 
@@ -182,21 +162,11 @@ Limits and validation:
 - `post_batch` requires 1 to 50 entries.
 - `scheme_id` is recorded but not validated by the program. v1 clients process `0x0001` and ignore unsupported schemes.
 
-## Registry
+### Registry
 
-A recipient can share their SLNT meta-address directly, but direct sharing is not always good UX. In many cases, a sender may only know a recipient's normal Solana wallet address, profile, or application identity.
+A recipient can share their meta-address directly, but direct sharing is not always good UX. In many cases, a sender may only know a recipient's normal Solana wallet address.
 
-Registry is an optional discovery layer that maps a known Solana wallet to an SLNT meta-address.
-
-For example:
-
-```text
-normal Solana wallet -> SLNT meta-address
-```
-
-A sender wallet can look up the recipient's SLNT meta-address before deriving a stealth address.
-
-Registry is not required for silent payments to work. A sender who already has the recipient's SLNT meta-address can derive a stealth address without using Registry. This distinction is important: Registry improves discoverability, but it should not become a mandatory dependency for the core protocol.
+Registry is an optional discovery layer that maps a known Solana wallet to a silent meta-address. This is not required for silent payments to work. A sender who already has the recipient's silent meta-address can derive a stealth address without using Registry. However, Registry improves discoverability.
 
 Registry should support basic wallet expectations:
 
@@ -268,16 +238,16 @@ The main privacy goal is recipient unlinkability from the reusable meta-address.
 
 A public observer may see:
 
-- the asset transfer,
-- the destination stealth address,
-- the Pinboard announcement,
-- token type and amount,
-- transaction timing,
-- later sweep activity.
+- the asset transfer
+- the destination stealth address
+- the Pinboard announcement
+- token type and amount
+- transaction timing
+- later sweep activity
 
-The observer should not learn, from the transfer alone, which reusable SLNT meta-address the payment was derived from.
+The observer should not learn, from the transfer alone, which reusable silent meta-address the payment was derived from.
 
-This is a limited privacy claim. SLNT does not provide amount privacy, asset-type privacy, sender anonymity, network-level privacy, or complete protection against timing correlation. If a sender announces immediately and the recipient sweeps immediately, an observer may still make probabilistic inferences.
+This is a limited privacy claim. This RFC does not provide amount privacy, asset-type privacy, sender anonymity, network-level privacy, or complete protection against timing correlation. If a sender announces immediately and the recipient sweeps immediately, an observer may still make probabilistic inferences.
 
 The standard should be judged on whether it gives wallets a practical recipient-privacy primitive that is meaningfully better than address reuse while still fitting Solana's existing account and token model.
 
@@ -287,7 +257,7 @@ The standard should be judged on whether it gives wallets a practical recipient-
 
 The default design separates the payment transaction from the announcement.
 
-This avoids marking the asset transfer itself as an SLNT payment. It also allows different announcement services, indexers, and wallet backends to exist without changing how assets are transferred.
+This avoids marking the asset transfer itself as a silent payment. It also allows different announcement services, indexers, and wallet backends to exist without changing how assets are transferred.
 
 The tradeoff is operational complexity. If announcements are delayed, censored, or lost, the recipient may not discover the payment promptly. The draft therefore includes a self-announce fallback.
 
@@ -301,15 +271,13 @@ Feedback is needed on whether this fallback should be required, optional, or han
 
 ### Optional Registry
 
-Registry improves UX when a sender knows only the recipient's normal wallet address. However, direct sharing of SLNT meta-addresses should remain valid.
+Registry improves UX when a sender knows only the recipient's normal wallet address. However, direct sharing of silent meta-addresses should remain valid.
 
 Registry should be treated as a discovery convenience, not as the core privacy mechanism.
 
 ### Normal Solana Receive Addresses
 
-The derived stealth address is a normal Solana address.
-
-This allows SLNT to support SOL, SPL tokens, and NFTs without requiring new token programs or special transfer instructions. The complexity is pushed into sender derivation, recipient scanning, and sweeping.
+The derived stealth address is a normal Solana address. This allows us to support SOL, SPL tokens, and NFTs without requiring new token programs or special transfer instructions.
 
 ## Feedback Requested
 
@@ -318,11 +286,8 @@ I would especially like feedback on the following questions:
 1. **Wallet integration:** Is this derivation and scanning model practical for Solana wallets, given current key-management constraints?
 2. **Pinboard interface:** Is the `Note` event shape sufficient for wallet discovery without leaking unnecessary linkage information?
 3. **Announcement reliability:** Should the standard require self-announcement as a fallback, or leave fallback behavior to implementations?
-4. **Registry scope:** Should Registry be part of this sRFC, or split into a separate discovery sRFC?
-5. **Privacy claims:** Are the privacy guarantees stated narrowly enough? Are there realistic linkage attacks the draft should address more directly?
-6. **Sweep behavior:** What rules should wallets follow to avoid making sweep transactions the easiest point of linkage?
-7. **Indexer support:** Is scanning Pinboard events practical for RPC providers, indexers, and wallet backends at scale?
-8. **Contract interface:** Are the Pinboard and Registry program interfaces minimal enough to freeze after review, or should any fields/instructions change before audit?
+4. **Privacy claims:** Are the privacy guarantees stated narrowly enough? Are there realistic linkage attacks the draft should address more directly?
+5. **Indexer support:** Is scanning Pinboard events practical for RPC providers, indexers, and wallet backends at scale?
 
 ## Reference Material
 
