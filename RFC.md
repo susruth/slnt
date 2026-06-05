@@ -291,6 +291,9 @@ I would especially like feedback on the following questions:
 
 ## Reference Material
 
+- Bitcoin Silent Payments: <https://bips.dev/352/>
+- Ethereum Stealth Addresses: <https://eips.ethereum.org/EIPS/eip-5564>
+- Ethereum Stealth Registry: <https://eips.ethereum.org/EIPS/eip-6538>
 - Reference implementation: <https://github.com/susruth/slnt>
 - Pinboard program source: <https://github.com/susruth/slnt/blob/main/programs/pinboard/src/lib.rs>
 - Registry program source: <https://github.com/susruth/slnt/blob/main/programs/registry/src/lib.rs>
