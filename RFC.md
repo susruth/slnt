@@ -17,25 +17,37 @@ The goal of this sRFC is to get feedback on the standard shape before treating a
 
 ```mermaid
 flowchart LR
-  subgraph today["Today: reusable public address"]
+  subgraph TODAY["Today: reusable public address"]
     direction TB
     A1["Alice pays"] --> W["Recipient public wallet"]
     B1["Bob pays"] --> W
     C1["Carol pays"] --> W
-    O1["Observer"] -. "links payments, balance, and counterparty graph" .-> W
+    O1["Public observer"] -. "links payments, balance, and counterparty graph" .-> W
   end
 
-  subgraph slnt["SLNT: reusable meta-address, fresh receive addresses"]
+  subgraph SLNT["SLNT: reusable meta-address, fresh receive addresses"]
     direction TB
     M["Recipient publishes SLNT meta-address"]
     M --> A2["Alice derives P1"]
     M --> B2["Bob derives P2"]
     M --> C2["Carol derives P3"]
-    A2 --> P1["Normal transfer to fresh stealth address P1"]
-    B2 --> P2["Normal transfer to fresh stealth address P2"]
-    C2 --> P3["Normal transfer to fresh stealth address P3"]
-    O2["Observer"] -. "sees separate transfers, but lacks scan key" .-> P2
+
+    A2 --> P1["Transfer to fresh stealth address P1"]
+    B2 --> P2["Transfer to fresh stealth address P2"]
+    C2 --> P3["Transfer to fresh stealth address P3"]
+
+    O2["Public observer"] -. "sees separate transfers, but lacks scan key" .-> P2
   end
+
+  TODAY ~~~ SLNT
+
+  classDef problem fill:#fff1f2,stroke:#e11d48,color:#111827;
+  classDef slnt fill:#ecfdf5,stroke:#059669,color:#111827;
+  classDef neutral fill:#f8fafc,stroke:#64748b,color:#111827;
+
+  class W,O1 problem;
+  class M,A2,B2,C2,P1,P2,P3,O2 slnt;
+  class A1,B1,C1 neutral;
 ```
 
 Today, a reusable Solana address makes the recipient’s payment graph public. SLNT keeps the reusable-address UX, but each sender derives a fresh one-time receive address that only the recipient can recognize.
